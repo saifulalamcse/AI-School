@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { course, testimonials } from "@/lib/site-data";
+import { course as fallbackCourse, testimonials } from "@/lib/site-data";
+import { fetchCourseBySlug, type DynamicCourse } from "@/lib/site-api";
 import mountainJourney from "@/assets/mountain-journey.jpg";
 import personaCreator from "@/assets/persona-creator.jpg";
 import laptopMockup from "@/assets/laptop-mockup.jpg";
@@ -9,16 +11,16 @@ import laptopMockup from "@/assets/laptop-mockup.jpg";
 export const Route = createFileRoute("/courses/$slug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Creative AI Community — My Course` },
+      { title: `Course Details — My Course` },
       {
         name: "description",
         content:
-          "Join the Creative AI Community. 25+ hours of content, new lessons every week, and 2 live sessions a month with lifetime access.",
+          "Join My Course masterclasses. 25+ hours of content, new lessons every week, and 2 live sessions a month.",
       },
-      { property: "og:title", content: "Creative AI Community" },
+      { property: "og:title", content: "Course Details — My Course" },
       {
         property: "og:description",
-        content: `The community for creators building the next wave of AI-native work. (${params.slug})`,
+        content: `Master AI design and productivity. (${params.slug})`,
       },
       { property: "og:type", content: "website" },
     ],
@@ -27,15 +29,37 @@ export const Route = createFileRoute("/courses/$slug")({
 });
 
 function CoursePage() {
+  const { slug } = Route.useParams();
+  const [courseData, setCourseData] = useState<DynamicCourse | null>(null);
+
+  useEffect(() => {
+    fetchCourseBySlug(slug).then((data) => setCourseData(data));
+  }, [slug]);
+
+  const activeCourse = courseData || {
+    id: "1",
+    slug: fallbackCourse.slug,
+    title: fallbackCourse.title,
+    subtitle: fallbackCourse.subtitle,
+    description: "Master Creative design with AI — 25+ AI Tools Use Cases Covered.",
+    price: "1,900",
+    period: "month",
+    status: "active",
+    thumbnail_url: null,
+    stats: [...fallbackCourse.stats],
+    topics: [...fallbackCourse.topics],
+    inside: [...fallbackCourse.inside],
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
       <main>
-        <CourseHero />
-        <VideoSection />
-        <TopicsSection />
+        <CourseHero activeCourse={activeCourse} />
+        <VideoSection activeCourse={activeCourse} />
+        <TopicsSection activeCourse={activeCourse} />
         <TopOnePercent />
-        <InsideCommunity />
+        <InsideCommunity activeCourse={activeCourse} />
         <FeaturedCreatives />
         <GalleryStrip />
         <RecapCta />
@@ -46,17 +70,30 @@ function CoursePage() {
   );
 }
 
-function CourseHero() {
+function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
   return (
     <section className="relative pt-32 pb-20 grid-glow">
       <div className="mx-auto max-w-5xl px-5 text-center">
-        <div className="eyebrow">✦ Creative AI Community</div>
+        <div className="eyebrow">✦ {activeCourse.title}</div>
         <h1 className="mt-6 font-display font-bold text-5xl md:text-7xl leading-tight">
-          <span className="gradient-text">{course.title}</span>
+          <span className="gradient-text">{activeCourse.title}</span>
         </h1>
-        <p className="mt-5 mx-auto max-w-2xl text-muted-foreground text-lg">{course.subtitle}</p>
+        <p className="mt-5 mx-auto max-w-2xl text-muted-foreground text-lg">
+          {activeCourse.subtitle || activeCourse.description}
+        </p>
+
+        {activeCourse.thumbnail_url && (
+          <div className="mt-8 mx-auto max-w-3xl rounded-3xl overflow-hidden border border-border shadow-2xl">
+            <img
+              src={activeCourse.thumbnail_url}
+              alt={activeCourse.title}
+              className="w-full aspect-[16/9] object-cover"
+            />
+          </div>
+        )}
+
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-          {course.stats.map((s) => (
+          {(activeCourse.stats || fallbackCourse.stats).map((s) => (
             <div key={s.label} className="surface-card p-4 text-left">
               <div className="font-display font-bold text-xl gradient-text">{s.label}</div>
               <div className="text-xs text-muted-foreground mt-1">{s.sub}</div>
@@ -73,7 +110,7 @@ function CourseHero() {
   );
 }
 
-function VideoSection() {
+function VideoSection({ activeCourse }: { activeCourse: DynamicCourse }) {
   return (
     <section className="section-light py-20">
       <div className="mx-auto max-w-4xl px-5 text-center">
@@ -83,7 +120,7 @@ function VideoSection() {
         <p className="mt-4 text-neutral-600">Watch the 2-minute intro from your community lead.</p>
         <div className="mt-10 rounded-3xl overflow-hidden bg-black aspect-video relative group cursor-pointer border border-neutral-200">
           <img
-            src={personaCreator}
+            src={activeCourse.thumbnail_url || personaCreator}
             alt="Video poster"
             loading="lazy"
             width={800}
@@ -106,7 +143,8 @@ function VideoSection() {
   );
 }
 
-function TopicsSection() {
+function TopicsSection({ activeCourse }: { activeCourse: DynamicCourse }) {
+  const topicsList = activeCourse.topics || fallbackCourse.topics;
   return (
     <section className="py-24">
       <div className="mx-auto max-w-6xl px-5">
@@ -120,7 +158,7 @@ function TopicsSection() {
         </div>
         <div className="mt-14 grid md:grid-cols-2 gap-8 items-center">
           <div className="grid sm:grid-cols-2 gap-3">
-            {course.topics.map((t, i) => (
+            {topicsList.map((t, i) => (
               <div key={t} className="surface-card p-4 flex items-center gap-3">
                 <div className="size-8 rounded-lg gradient-bg grid place-items-center text-white text-xs font-bold">
                   {String(i + 1).padStart(2, "0")}
@@ -182,7 +220,8 @@ function TopOnePercent() {
   );
 }
 
-function InsideCommunity() {
+function InsideCommunity({ activeCourse }: { activeCourse: DynamicCourse }) {
+  const insideList = activeCourse.inside || fallbackCourse.inside;
   return (
     <section className="py-24">
       <div className="mx-auto max-w-6xl px-5">
@@ -192,7 +231,7 @@ function InsideCommunity() {
           </h2>
         </div>
         <div className="mt-14 space-y-10">
-          {course.inside.map((row) => (
+          {insideList.map((row) => (
             <div key={row.title} className="surface-card p-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>

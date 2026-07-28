@@ -107,7 +107,7 @@ export async function fetchCourses(): Promise<DynamicCourse[]> {
 }
 
 // Fetch Single Course by Slug
-export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse | null> {
+export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse> {
   try {
     const { data, error } = await supabase
       .from("courses")
@@ -116,42 +116,61 @@ export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse | n
       .maybeSingle();
 
     if (error || !data) {
-      if (slug === fallbackCourse.slug || slug === "creative-ai-community") {
-        return {
-          id: "1",
-          slug: fallbackCourse.slug,
-          title: fallbackCourse.title,
-          subtitle: fallbackCourse.subtitle,
-          description: "Master Creative design with AI — 25+ AI Tools Use Cases Covered.",
-          price: "1,900",
-          period: "month",
-          status: "active",
-          thumbnail_url: null,
-          stats: [...fallbackCourse.stats],
-          topics: [...fallbackCourse.topics],
-          inside: [...fallbackCourse.inside],
-        };
-      }
-      return null;
+      return {
+        id: "fallback-" + slug,
+        slug: slug,
+        title: slug
+          ? slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+          : fallbackCourse.title,
+        subtitle: fallbackCourse.subtitle,
+        description: "Master Creative design with AI — 25+ AI Tools Use Cases Covered.",
+        price: "1,900",
+        period: "month",
+        status: "active",
+        thumbnail_url: null,
+        stats: [...fallbackCourse.stats],
+        topics: [...fallbackCourse.topics],
+        inside: [...fallbackCourse.inside],
+      };
     }
 
     return {
       id: data.id,
       slug: data.slug,
-      title: data.title,
-      subtitle: data.subtitle,
-      description: data.description,
+      title: data.title || "Untitled Course",
+      subtitle: data.subtitle || "Master AI workflows and creative automation.",
+      description: data.description || "Learn AI tools for real productivity.",
       price: data.price || "1,900",
       period: data.period || "month",
       status: data.status || "active",
-      thumbnail_url: data.thumbnail_url,
-      stats: Array.isArray(data.stats) ? data.stats : [...fallbackCourse.stats],
-      topics: Array.isArray(data.topics) ? data.topics : [...fallbackCourse.topics],
-      inside: Array.isArray(data.inside) ? data.inside : [...fallbackCourse.inside],
+      thumbnail_url: data.thumbnail_url || null,
+      stats:
+        Array.isArray(data.stats) && data.stats.length > 0 ? data.stats : [...fallbackCourse.stats],
+      topics:
+        Array.isArray(data.topics) && data.topics.length > 0
+          ? data.topics
+          : [...fallbackCourse.topics],
+      inside:
+        Array.isArray(data.inside) && data.inside.length > 0
+          ? data.inside
+          : [...fallbackCourse.inside],
     };
   } catch (err) {
     console.error("Error fetching course by slug:", err);
-    return null;
+    return {
+      id: "fallback-" + slug,
+      slug: slug,
+      title: fallbackCourse.title,
+      subtitle: fallbackCourse.subtitle,
+      description: "Master Creative design with AI.",
+      price: "1,900",
+      period: "month",
+      status: "active",
+      thumbnail_url: null,
+      stats: [...fallbackCourse.stats],
+      topics: [...fallbackCourse.topics],
+      inside: [...fallbackCourse.inside],
+    };
   }
 }
 

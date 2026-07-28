@@ -14,6 +14,8 @@ import {
   Loader2,
   X,
   Layers,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -28,7 +30,7 @@ import {
   type DynamicPricingPlan,
 } from "@/lib/site-api";
 
-export const Route = createFileRoute("/_authenticated/admin/dashboard")({
+export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [{ title: "Admin Panel — My Course" }, { name: "robots", content: "noindex" }],
   }),
@@ -54,6 +56,7 @@ function AdminDashboardPage() {
   const [cTitle, CSetTitle] = useState("");
   const [cSubtitle, CSetSubtitle] = useState("");
   const [cDescription, CSetDescription] = useState("");
+  const [cThumbnailUrl, CSetThumbnailUrl] = useState("");
   const [cPrice, CSetPrice] = useState("1,900");
   const [cPeriod, CSetPeriod] = useState("month");
   const [cStatus, CSetStatus] = useState("active");
@@ -61,6 +64,7 @@ function AdminDashboardPage() {
     "AI Generation, Text-to-Video, UGC Ads, Landing Page Design",
   );
   const [saving, setSaving] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   // Modal State for Expert
   const [showExpertModal, setShowExpertModal] = useState(false);
@@ -94,6 +98,45 @@ function AdminDashboardPage() {
     setLoading(false);
   }
 
+  // Handle Image File Upload
+  async function handleImageFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImg(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from("course-thumbnails")
+        .upload(filePath, file, { upsert: true });
+
+      if (error) {
+        // Fallback to Data URL if bucket doesn't exist yet
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (ev.target?.result) {
+            CSetThumbnailUrl(ev.target.result as string);
+            toast.success("Image preview loaded!");
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const { data: publicUrlData } = supabase.storage
+          .from("course-thumbnails")
+          .getPublicUrl(filePath);
+        CSetThumbnailUrl(publicUrlData.publicUrl);
+        toast.success("Image uploaded successfully!");
+      }
+    } catch {
+      toast.error("Failed to upload image.");
+    } finally {
+      setUploadingImg(false);
+    }
+  }
+
   // Handle Course Create/Edit
   async function handleSaveCourse(e: React.FormEvent) {
     e.preventDefault();
@@ -112,6 +155,7 @@ function AdminDashboardPage() {
       title: cTitle.trim(),
       subtitle: cSubtitle.trim(),
       description: cDescription.trim(),
+      thumbnail_url: cThumbnailUrl.trim() || null,
       price: cPrice.trim(),
       period: cPeriod,
       status: cStatus,
@@ -156,6 +200,7 @@ function AdminDashboardPage() {
     CSetTitle("");
     CSetSubtitle("");
     CSetDescription("");
+    CSetThumbnailUrl("");
     CSetPrice("1,900");
     CSetPeriod("month");
     CSetStatus("active");
@@ -168,6 +213,7 @@ function AdminDashboardPage() {
     CSetTitle(c.title);
     CSetSubtitle(c.subtitle || "");
     CSetDescription(c.description || "");
+    CSetThumbnailUrl(c.thumbnail_url || "");
     CSetPrice(c.price);
     CSetPeriod(c.period);
     CSetStatus(c.status);
@@ -423,29 +469,44 @@ function AdminDashboardPage() {
                       key={c.id}
                       className="surface-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
                     >
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                              c.status === "active"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                            }`}
-                          >
-                            {c.status.toUpperCase()}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            /courses/{c.slug}
-                          </span>
-                        </div>
-                        <h4 className="mt-2 font-display font-bold text-xl text-foreground">
-                          {c.title}
-                        </h4>
-                        <p className="mt-1 text-sm text-muted-foreground max-w-2xl">{c.subtitle}</p>
-                        <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-purple-400">
-                          <span>
-                            Price: ৳{c.price} / {c.period}
-                          </span>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {c.thumbnail_url ? (
+                          <img
+                            src={c.thumbnail_url}
+                            alt={c.title}
+                            className="size-16 rounded-xl object-cover border border-border shrink-0"
+                          />
+                        ) : (
+                          <div className="size-16 rounded-xl bg-purple-500/10 border border-purple-500/20 grid place-items-center shrink-0">
+                            <BookOpen className="size-6 text-purple-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                c.status === "active"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              }`}
+                            >
+                              {c.status.toUpperCase()}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              /courses/{c.slug}
+                            </span>
+                          </div>
+                          <h4 className="mt-1.5 font-display font-bold text-xl text-foreground">
+                            {c.title}
+                          </h4>
+                          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+                            {c.subtitle}
+                          </p>
+                          <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-purple-400">
+                            <span>
+                              Price: ৳{c.price} / {c.period}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -608,6 +669,56 @@ function AdminDashboardPage() {
                   placeholder="e.g. Creative AI Community"
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Course Image / Thumbnail Banner
+                </label>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="btn-outline-pill text-xs inline-flex items-center gap-1.5 cursor-pointer py-2 px-3">
+                      {uploadingImg ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5 text-purple-400" />
+                      )}
+                      <span>{uploadingImg ? "Uploading..." : "Upload File"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageFileSelect}
+                        disabled={uploadingImg}
+                      />
+                    </label>
+                    <span className="text-xs text-muted-foreground">or Image URL:</span>
+                    <input
+                      type="text"
+                      value={cThumbnailUrl}
+                      onChange={(e) => CSetThumbnailUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="flex-1 min-w-[200px] px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  {cThumbnailUrl && (
+                    <div className="relative rounded-2xl overflow-hidden border border-border aspect-video max-h-44 bg-black/40 group">
+                      <img
+                        src={cThumbnailUrl}
+                        alt="Course Thumbnail Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => CSetThumbnailUrl("")}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>

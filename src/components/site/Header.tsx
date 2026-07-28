@@ -152,10 +152,7 @@ export function Header() {
                           onClick={() => setMenuOpen(false)}
                           className="rounded-xl cursor-pointer py-2 px-2 focus:bg-amber-500/10 text-amber-400 font-medium"
                         >
-                          <Link
-                            to="/_authenticated/admin/dashboard"
-                            className="flex items-center gap-2 text-sm w-full"
-                          >
+                          <Link to="/admin" className="flex items-center gap-2 text-sm w-full">
                             <Shield className="size-4 text-amber-400" />
                             <span>Admin Panel</span>
                           </Link>

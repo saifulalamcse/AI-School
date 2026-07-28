@@ -77,7 +77,7 @@ function AllCoursesPage() {
               <div className="md:col-span-6 relative">
                 <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
                   <img
-                    src={personaCreator}
+                    src={featuredCourse?.thumbnail_url || personaCreator}
                     alt="Creative AI Community preview"
                     className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition duration-500"
                   />
@@ -183,7 +183,10 @@ function AllCoursesPage() {
                   <div>
                     <div className="aspect-video rounded-2xl overflow-hidden relative border border-border mb-5">
                       <img
-                        src={[personaCreator, laptopMockup, mountainJourney][idx % 3]}
+                        src={
+                          c.thumbnail_url ||
+                          [personaCreator, laptopMockup, mountainJourney][idx % 3]
+                        }
                         alt={c.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                       />
