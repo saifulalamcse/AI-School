@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { testimonials, workshops } from "@/lib/site-data";
+import { workshops } from "@/lib/site-data";
+import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -24,6 +26,12 @@ export const Route = createFileRoute("/about")({
 });
 
 function AboutPage() {
+  const [expertsList, setExpertsList] = useState<DynamicExpert[]>([]);
+
+  useEffect(() => {
+    fetchExperts().then((data) => setExpertsList(data));
+  }, []);
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -70,10 +78,10 @@ function AboutPage() {
             The <span className="gradient-text">Team</span>
           </h2>
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {testimonials.map((t) => (
-              <div key={t.name} className="surface-card p-6 text-center">
+            {expertsList.map((t) => (
+              <div key={t.id || t.name} className="surface-card p-6 text-center">
                 <div className="mx-auto size-20 rounded-full gradient-bg grid place-items-center text-white font-bold text-2xl font-display">
-                  {t.initials}
+                  {t.initials || "EX"}
                 </div>
                 <div className="mt-4 font-semibold">{t.name}</div>
                 <div className="text-xs text-muted-foreground mt-1">{t.role}</div>

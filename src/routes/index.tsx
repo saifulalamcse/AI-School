@@ -10,13 +10,13 @@ import { skillTracks, prompts, news, testimonials, workshops } from "@/lib/site-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "E-Course— Learn AI for Real Productivity" },
+      { title: "My Course — Learn AI for Real Productivity" },
       {
         name: "description",
         content:
           "Cohort-based AI communities, a curated prompt library and daily AI news. Learn the tools that make you 10x more productive.",
       },
-      { property: "og:title", content: "E-Course— Learn AI for Real Productivity" },
+      { property: "og:title", content: "My Course — Learn AI for Real Productivity" },
       {
         property: "og:description",
         content:

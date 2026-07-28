@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
+import logoImg from "@/assets/logo.jpg";
 
 const columns = [
   {
@@ -34,8 +35,8 @@ export function Footer() {
     <footer className="border-t border-border mt-24">
       <div className="mx-auto max-w-7xl px-5 py-16 grid gap-12 md:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="size-7 rounded-lg gradient-bg" />
+          <div className="flex items-center gap-2.5">
+            <img src={logoImg} alt="My Course Logo" className="size-8 rounded-lg object-cover" />
             <span className="font-display font-bold text-lg">My Course</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground max-w-xs">

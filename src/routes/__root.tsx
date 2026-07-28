@@ -73,9 +73,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "My Course" },
       { name: "twitter:card", content: "summary_large_image" },
-      { title: "E-Course— Learn AI for Real Productivity" },
-      { property: "og:title", content: "E-Course— Learn AI for Real Productivity" },
-      { name: "twitter:title", content: "E-Course— Learn AI for Real Productivity" },
+      { title: "My Course — Learn AI for Real Productivity" },
+      { property: "og:title", content: "My Course — Learn AI for Real Productivity" },
+      { name: "twitter:title", content: "My Course — Learn AI for Real Productivity" },
       {
         name: "description",
         content:
@@ -91,21 +91,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Cohort-based AI communities, a curated prompt library and daily AI news. Learn the tools that make you 10x more productive.",
       },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0d5a7962-300d-4f11-8fed-071277129fd1/id-preview-52d27362--3199783c-6aa3-491b-945c-12f7c35f4084.lovable.app-1785042413967.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0d5a7962-300d-4f11-8fed-071277129fd1/id-preview-52d27362--3199783c-6aa3-491b-945c-12f7c35f4084.lovable.app-1785042413967.png",
-      },
+      { property: "og:image", content: "/logo.jpg" },
+      { name: "twitter:image", content: "/logo.jpg" },
       { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/logo.jpg", type: "image/jpeg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
