@@ -44,12 +44,15 @@ CREATE TABLE IF NOT EXISTS public.courses (
   period TEXT NOT NULL DEFAULT 'month',
   status TEXT NOT NULL DEFAULT 'active',
   thumbnail_url TEXT,
+  tools JSONB DEFAULT '[]'::jsonb,
   stats JSONB DEFAULT '[]'::jsonb,
   topics JSONB DEFAULT '[]'::jsonb,
   inside JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS tools JSONB DEFAULT '[]'::jsonb;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.courses TO anon, authenticated;
 GRANT ALL ON public.courses TO service_role;

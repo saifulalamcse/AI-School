@@ -17,7 +17,6 @@ const nav = [
   { to: "/", label: "Home" },
   { to: "/prompt-library", label: "Prompt Library" },
   { to: "/ai-news", label: "AI News" },
-  { to: "/pricing", label: "Pricing" },
   { to: "/about", label: "About" },
 ] as const;
 
@@ -175,9 +174,9 @@ export function Header() {
                       onClick={() => setMenuOpen(false)}
                       className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
                     >
-                      <Link to="/courses" className="flex items-center gap-2 text-sm w-full">
+                      <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
                         <BookOpen className="size-4 text-pink-400" />
-                        <span>All Courses</span>
+                        <span>My Courses</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -211,7 +210,11 @@ export function Header() {
               >
                 Login
               </Link>
-              <Link to="/pricing" className="hidden sm:inline btn-gradient text-sm">
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                className="hidden sm:inline btn-gradient text-sm"
+              >
                 Join Today
               </Link>
             </>
@@ -276,7 +279,8 @@ export function Header() {
                     Login
                   </Link>
                   <Link
-                    to="/pricing"
+                    to="/auth"
+                    search={{ mode: "signup" }}
                     onClick={() => setOpen(false)}
                     className="btn-gradient text-sm text-center"
                   >

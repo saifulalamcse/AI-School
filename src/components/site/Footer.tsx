@@ -6,10 +6,10 @@ const columns = [
   {
     title: "Learn",
     items: [
+      ["All Courses", "/courses"],
       ["Prompt Library", "/prompt-library"],
       ["AI News", "/ai-news"],
       ["Creative AI Community", "/courses/creative-ai-community"],
-      ["Pricing", "/pricing"],
     ],
   },
   {

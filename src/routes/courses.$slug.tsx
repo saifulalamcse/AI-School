@@ -92,16 +92,31 @@ function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
           </div>
         )}
 
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-          {(activeCourse.stats || fallbackCourse.stats).map((s) => (
-            <div key={s.label} className="surface-card p-4 text-left">
+        {/* Tool badges */}
+        <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+          {(activeCourse.tools && activeCourse.tools.length > 0
+            ? activeCourse.tools
+            : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"]
+          ).map((tool) => (
+            <span
+              key={tool}
+              className="px-3 py-1 rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-neutral-300 backdrop-blur-md"
+            >
+              {tool}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+          {(activeCourse.stats || fallbackCourse.stats).map((s, idx) => (
+            <div key={s.label + idx} className="surface-card p-4 text-left">
               <div className="font-display font-bold text-xl gradient-text">{s.label}</div>
               <div className="text-xs text-muted-foreground mt-1">{s.sub}</div>
             </div>
           ))}
         </div>
         <div className="mt-10">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
             Join Today →
           </Link>
         </div>
@@ -134,7 +149,7 @@ function VideoSection({ activeCourse }: { activeCourse: DynamicCourse }) {
           </div>
         </div>
         <div className="mt-8">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
             Enroll Now →
           </Link>
         </div>
@@ -180,7 +195,7 @@ function TopicsSection({ activeCourse }: { activeCourse: DynamicCourse }) {
           </div>
         </div>
         <div className="mt-10 text-center">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
             Start Learning →
           </Link>
         </div>
@@ -211,7 +226,7 @@ function TopOnePercent() {
           />
         </div>
         <div className="mt-8">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
             Begin the Journey →
           </Link>
         </div>
@@ -354,7 +369,7 @@ function RecapCta() {
           using AI Workflows.
         </h2>
         <div className="mt-8">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
             Join Today →
           </Link>
         </div>

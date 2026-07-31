@@ -63,8 +63,16 @@ function DashboardPage() {
     let active = true;
     (async () => {
       const [{ data: e }, { data: s }] = await Promise.all([
-        supabase.from("enrollments").select("*").order("created_at", { ascending: false }),
-        supabase.from("saved_prompts").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("enrollments")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("saved_prompts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
       if (!active) return;
       setEnrollments((e as Enrollment[]) ?? []);
@@ -95,8 +103,8 @@ function DashboardPage() {
               <Link to="/prompt-library" className="btn-outline-pill text-sm">
                 Browse prompts
               </Link>
-              <Link to="/pricing" className="btn-gradient text-sm">
-                Upgrade
+              <Link to="/courses" className="btn-gradient text-sm">
+                All Courses
               </Link>
             </div>
           </div>
@@ -151,11 +159,11 @@ function CoursesTab({ enrollments }: { enrollments: Enrollment[] }) {
   if (enrollments.length === 0) {
     return (
       <EmptyState
-        title="No courses yet"
-        body="Join the Creative AI Community to unlock weekly lessons and live sessions."
+        title="No courses enrolled yet"
+        body="You haven't enrolled in any course yet. Browse our course catalog to get started."
         action={
-          <Link to="/pricing" className="btn-gradient">
-            See memberships →
+          <Link to="/courses" className="btn-gradient">
+            Browse All Courses →
           </Link>
         }
       />

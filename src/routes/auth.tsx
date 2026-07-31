@@ -82,7 +82,7 @@ function AuthPage() {
 
     setLoading(true);
     if (tab === "signup") {
-      if (fullName.trim().length < 2) {
+      if (fullName.trim().length < 4) {
         setLoading(false);
         return toast.error("Please enter your full name.");
       }

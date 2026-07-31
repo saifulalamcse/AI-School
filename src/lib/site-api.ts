@@ -15,6 +15,7 @@ export type DynamicCourse = {
   period: string;
   status: string;
   thumbnail_url: string | null;
+  tools?: string[];
   stats: { label: string; sub: string }[];
   topics: string[];
   inside: { count: string; title: string; desc: string }[];
@@ -63,6 +64,7 @@ export async function fetchCourses(): Promise<DynamicCourse[]> {
           period: "month",
           status: "active",
           thumbnail_url: null,
+          tools: ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
           stats: [...fallbackCourse.stats],
           topics: [...fallbackCourse.topics],
           inside: [...fallbackCourse.inside],
@@ -80,9 +82,20 @@ export async function fetchCourses(): Promise<DynamicCourse[]> {
       period: item.period || "month",
       status: item.status || "active",
       thumbnail_url: item.thumbnail_url,
-      stats: Array.isArray(item.stats) ? item.stats : [...fallbackCourse.stats],
-      topics: Array.isArray(item.topics) ? item.topics : [...fallbackCourse.topics],
-      inside: Array.isArray(item.inside) ? item.inside : [...fallbackCourse.inside],
+      tools:
+        Array.isArray(item.tools) && item.tools.length > 0
+          ? item.tools
+          : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
+      stats:
+        Array.isArray(item.stats) && item.stats.length > 0 ? item.stats : [...fallbackCourse.stats],
+      topics:
+        Array.isArray(item.topics) && item.topics.length > 0
+          ? item.topics
+          : [...fallbackCourse.topics],
+      inside:
+        Array.isArray(item.inside) && item.inside.length > 0
+          ? item.inside
+          : [...fallbackCourse.inside],
       created_at: item.created_at,
     }));
   } catch (err) {
@@ -98,6 +111,7 @@ export async function fetchCourses(): Promise<DynamicCourse[]> {
         period: "month",
         status: "active",
         thumbnail_url: null,
+        tools: ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
         stats: [...fallbackCourse.stats],
         topics: [...fallbackCourse.topics],
         inside: [...fallbackCourse.inside],
@@ -128,6 +142,7 @@ export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse> {
         period: "month",
         status: "active",
         thumbnail_url: null,
+        tools: ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
         stats: [...fallbackCourse.stats],
         topics: [...fallbackCourse.topics],
         inside: [...fallbackCourse.inside],
@@ -144,6 +159,10 @@ export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse> {
       period: data.period || "month",
       status: data.status || "active",
       thumbnail_url: data.thumbnail_url || null,
+      tools:
+        Array.isArray(data.tools) && data.tools.length > 0
+          ? data.tools
+          : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
       stats:
         Array.isArray(data.stats) && data.stats.length > 0 ? data.stats : [...fallbackCourse.stats],
       topics:
@@ -167,6 +186,7 @@ export async function fetchCourseBySlug(slug: string): Promise<DynamicCourse> {
       period: "month",
       status: "active",
       thumbnail_url: null,
+      tools: ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"],
       stats: [...fallbackCourse.stats],
       topics: [...fallbackCourse.topics],
       inside: [...fallbackCourse.inside],

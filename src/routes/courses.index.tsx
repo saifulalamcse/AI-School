@@ -110,7 +110,10 @@ function AllCoursesPage() {
 
                 {/* Badges / Tools */}
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"].map((t) => (
+                  {(featuredCourse?.tools && featuredCourse.tools.length > 0
+                    ? featuredCourse.tools
+                    : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"]
+                  ).map((t) => (
                     <span
                       key={t}
                       className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-neutral-300"
@@ -122,18 +125,24 @@ function AllCoursesPage() {
 
                 {/* Stats strip */}
                 <div className="grid grid-cols-3 gap-3 pt-2">
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
-                    <div className="font-display font-bold text-lg text-white">24+ Hours</div>
-                    <div className="text-[11px] text-neutral-400">Course Duration</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
-                    <div className="font-display font-bold text-lg text-white">Live Classes</div>
-                    <div className="text-[11px] text-neutral-400">Weekly & Monthly</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-center">
-                    <div className="font-display font-bold text-lg text-white">Lifetime</div>
-                    <div className="text-[11px] text-neutral-400">Community Access</div>
-                  </div>
+                  {(featuredCourse?.stats && featuredCourse.stats.length > 0
+                    ? featuredCourse.stats
+                    : [
+                        { label: "24+ Hours", sub: "Course Duration" },
+                        { label: "Live Classes", sub: "Weekly & Monthly" },
+                        { label: "Lifetime", sub: "Community Access" },
+                      ]
+                  )
+                    .slice(0, 3)
+                    .map((st, i) => (
+                      <div
+                        key={st.label + i}
+                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-center"
+                      >
+                        <div className="font-display font-bold text-lg text-white">{st.label}</div>
+                        <div className="text-[11px] text-neutral-400">{st.sub}</div>
+                      </div>
+                    ))}
                 </div>
 
                 <div className="pt-2 flex flex-wrap gap-3">
@@ -144,8 +153,8 @@ function AllCoursesPage() {
                   >
                     Explore Course <ArrowRight className="size-4" />
                   </Link>
-                  <Link to="/pricing" className="btn-outline-pill text-sm">
-                    View Pricing
+                  <Link to="/auth" search={{ mode: "signup" }} className="btn-outline-pill text-sm">
+                    Join Community
                   </Link>
                 </div>
               </div>

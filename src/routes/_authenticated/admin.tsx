@@ -63,6 +63,13 @@ function AdminDashboardPage() {
   const [cTopics, CSetTopics] = useState(
     "AI Generation, Text-to-Video, UGC Ads, Landing Page Design",
   );
+  const [cTools, setCTools] = useState("ChatGPT, Midjourney, Claude, Runway, ElevenLabs, Sora");
+  const [cStat1Label, setCStat1Label] = useState("24+ Hours");
+  const [cStat1Sub, setCStat1Sub] = useState("Course Duration");
+  const [cStat2Label, setCStat2Label] = useState("Live Classes");
+  const [cStat2Sub, setCStat2Sub] = useState("Weekly & Monthly");
+  const [cStat3Label, setCStat3Label] = useState("Lifetime");
+  const [cStat3Sub, setCStat3Sub] = useState("Community Access");
   const [saving, setSaving] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
 
@@ -119,7 +126,7 @@ function AdminDashboardPage() {
         reader.onload = (ev) => {
           if (ev.target?.result) {
             CSetThumbnailUrl(ev.target.result as string);
-            toast.success("Image preview loaded!");
+            toast.success("Image selected!");
           }
         };
         reader.readAsDataURL(file);
@@ -128,10 +135,10 @@ function AdminDashboardPage() {
           .from("course-thumbnails")
           .getPublicUrl(filePath);
         CSetThumbnailUrl(publicUrlData.publicUrl);
-        toast.success("Image uploaded successfully!");
+        toast.success("Image uploaded!");
       }
     } catch {
-      toast.error("Failed to upload image.");
+      toast.error("Failed to process image file.");
     } finally {
       setUploadingImg(false);
     }
@@ -150,6 +157,17 @@ function AdminDashboardPage() {
       .map((t) => t.trim())
       .filter(Boolean);
 
+    const toolsArray = cTools
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const statsArray = [
+      { label: cStat1Label.trim() || "24+ Hours", sub: cStat1Sub.trim() || "Course Duration" },
+      { label: cStat2Label.trim() || "Live Classes", sub: cStat2Sub.trim() || "Weekly & Monthly" },
+      { label: cStat3Label.trim() || "Lifetime", sub: cStat3Sub.trim() || "Community Access" },
+    ];
+
     const coursePayload = {
       slug: cSlug.trim().toLowerCase().replace(/\s+/g, "-"),
       title: cTitle.trim(),
@@ -160,21 +178,29 @@ function AdminDashboardPage() {
       period: cPeriod,
       status: cStatus,
       topics: topicsArray,
+      tools: toolsArray,
+      stats: statsArray,
       updated_at: new Date().toISOString(),
     };
 
-    let error;
+    let res;
     if (editingCourseId && !editingCourseId.startsWith("1")) {
-      const res = await supabase.from("courses").update(coursePayload).eq("id", editingCourseId);
-      error = res.error;
+      res = await supabase.from("courses").update(coursePayload).eq("id", editingCourseId);
+      if (res.error && res.error.message.includes("tools")) {
+        const { tools, ...fallbackPayload } = coursePayload;
+        res = await supabase.from("courses").update(fallbackPayload).eq("id", editingCourseId);
+      }
     } else {
-      const res = await supabase.from("courses").insert(coursePayload);
-      error = res.error;
+      res = await supabase.from("courses").insert(coursePayload);
+      if (res.error && res.error.message.includes("tools")) {
+        const { tools, ...fallbackPayload } = coursePayload;
+        res = await supabase.from("courses").insert(fallbackPayload);
+      }
     }
 
     setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    if (res.error) {
+      toast.error(res.error.message);
     } else {
       toast.success(editingCourseId ? "Course updated!" : "New course added successfully!");
       setShowCourseModal(false);
@@ -205,6 +231,13 @@ function AdminDashboardPage() {
     CSetPeriod("month");
     CSetStatus("active");
     CSetTopics("AI Generation, Text-to-Video, UGC Ads, Landing Page Design");
+    setCTools("ChatGPT, Midjourney, Claude, Runway, ElevenLabs, Sora");
+    setCStat1Label("24+ Hours");
+    setCStat1Sub("Course Duration");
+    setCStat2Label("Live Classes");
+    setCStat2Sub("Weekly & Monthly");
+    setCStat3Label("Lifetime");
+    setCStat3Sub("Community Access");
   }
 
   function openEditCourse(c: DynamicCourse) {
@@ -218,6 +251,26 @@ function AdminDashboardPage() {
     CSetPeriod(c.period);
     CSetStatus(c.status);
     CSetTopics(Array.isArray(c.topics) ? c.topics.join(", ") : "");
+    setCTools(
+      Array.isArray(c.tools)
+        ? c.tools.join(", ")
+        : "ChatGPT, Midjourney, Claude, Runway, ElevenLabs, Sora",
+    );
+    if (Array.isArray(c.stats) && c.stats.length >= 3) {
+      setCStat1Label(c.stats[0]?.label || "24+ Hours");
+      setCStat1Sub(c.stats[0]?.sub || "Course Duration");
+      setCStat2Label(c.stats[1]?.label || "Live Classes");
+      setCStat2Sub(c.stats[1]?.sub || "Weekly & Monthly");
+      setCStat3Label(c.stats[2]?.label || "Lifetime");
+      setCStat3Sub(c.stats[2]?.sub || "Community Access");
+    } else {
+      setCStat1Label("24+ Hours");
+      setCStat1Sub("Course Duration");
+      setCStat2Label("Live Classes");
+      setCStat2Sub("Weekly & Monthly");
+      setCStat3Label("Lifetime");
+      setCStat3Sub("Community Access");
+    }
     setShowCourseModal(true);
   }
 
@@ -395,16 +448,6 @@ function AdminDashboardPage() {
                 {experts.length}
               </div>
             </div>
-
-            <div className="surface-card p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Active Pricing Plans</span>
-                <DollarSign className="size-4 text-emerald-400" />
-              </div>
-              <div className="mt-2 font-display font-bold text-3xl gradient-text">
-                {plans.length}
-              </div>
-            </div>
           </div>
 
           {/* Admin Navigation Tabs */}
@@ -428,16 +471,6 @@ function AdminDashboardPage() {
               }`}
             >
               🎓 Experts / Instructors ({experts.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("pricing")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "pricing"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-              }`}
-            >
-              💳 Pricing Tiers ({plans.length})
             </button>
           </div>
 
@@ -562,78 +595,6 @@ function AdminDashboardPage() {
                     >
                       <Trash2 className="size-4" />
                     </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: PRICING MANAGEMENT */}
-          {activeTab === "pricing" && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-bold text-xl">Membership Pricing Tiers</h3>
-                <button
-                  onClick={() => {
-                    setEditingPlanId(null);
-                    setPName("");
-                    setPPrice("1,900");
-                    setPPeriod("month");
-                    setPBadge("");
-                    setPFeatures("");
-                    setShowPlanModal(true);
-                  }}
-                  className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
-                >
-                  <Plus className="size-3.5" /> Add Plan
-                </button>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-4">
-                {plans.map((p) => (
-                  <div key={p.id} className="surface-card p-6 flex flex-col justify-between">
-                    <div>
-                      {p.badge && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-3 inline-block">
-                          {p.badge}
-                        </span>
-                      )}
-                      <h4 className="font-display font-bold text-xl">{p.name}</h4>
-                      <div className="mt-2 font-display font-bold text-3xl gradient-text">
-                        ৳{p.price}{" "}
-                        <span className="text-xs text-muted-foreground">/ {p.period}</span>
-                      </div>
-                      <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
-                        {p.features.map((f, i) => (
-                          <li key={i} className="flex items-center gap-2">
-                            <CheckCircle className="size-3 text-purple-400" /> {f}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                      <button
-                        onClick={() => {
-                          setEditingPlanId(p.id);
-                          setPName(p.name);
-                          setPPrice(p.price);
-                          setPPeriod(p.period);
-                          setPBadge(p.badge || "");
-                          setPFeatures(p.features.join("\n"));
-                          setShowPlanModal(true);
-                        }}
-                        className="text-xs font-semibold text-purple-400 hover:underline"
-                      >
-                        Edit Plan
-                      </button>
-                      <button
-                        onClick={() => handleDeletePlan(p.id)}
-                        className="text-xs text-red-400 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -807,6 +768,86 @@ function AdminDashboardPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Tools Covered Badges (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={cTools}
+                  onChange={(e) => setCTools(e.target.value)}
+                  placeholder="ChatGPT, Midjourney, Claude, Runway, ElevenLabs, Sora"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                  Course Highlight Cards (Duration, Live Classes, Access)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-card/60 p-3 rounded-2xl border border-border">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-purple-400 font-bold">
+                      Card 1 (Duration)
+                    </span>
+                    <input
+                      type="text"
+                      value={cStat1Label}
+                      onChange={(e) => setCStat1Label(e.target.value)}
+                      placeholder="24+ Hours"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={cStat1Sub}
+                      onChange={(e) => setCStat1Sub(e.target.value)}
+                      placeholder="Course Duration"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-muted-foreground"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-purple-400 font-bold">
+                      Card 2 (Classes)
+                    </span>
+                    <input
+                      type="text"
+                      value={cStat2Label}
+                      onChange={(e) => setCStat2Label(e.target.value)}
+                      placeholder="Live Classes"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={cStat2Sub}
+                      onChange={(e) => setCStat2Sub(e.target.value)}
+                      placeholder="Weekly & Monthly"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-muted-foreground"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-purple-400 font-bold">
+                      Card 3 (Access)
+                    </span>
+                    <input
+                      type="text"
+                      value={cStat3Label}
+                      onChange={(e) => setCStat3Label(e.target.value)}
+                      placeholder="Lifetime"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={cStat3Sub}
+                      onChange={(e) => setCStat3Sub(e.target.value)}
+                      placeholder="Community Access"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-muted-foreground"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Detailed Description
                 </label>
                 <textarea
@@ -893,101 +934,6 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      {/* MODAL: ADD / EDIT PRICING PLAN */}
-      {showPlanModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4">
-          <div className="bg-background border border-border w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
-            <button
-              onClick={() => setShowPlanModal(false)}
-              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
-            >
-              <X className="size-5" />
-            </button>
-            <h3 className="font-display font-bold text-2xl mb-5">
-              {editingPlanId ? "Edit Plan" : "Add Plan"}
-            </h3>
-            <form onSubmit={handleSavePlan} className="space-y-4 text-sm">
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Plan Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={pName}
-                  onChange={(e) => setPName(e.target.value)}
-                  placeholder="Monthly"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Price (BDT)
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={pPrice}
-                    onChange={(e) => setPPrice(e.target.value)}
-                    placeholder="1,900"
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Period
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={pPeriod}
-                    onChange={(e) => setPPeriod(e.target.value)}
-                    placeholder="month / year"
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Badge (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={pBadge}
-                  onChange={(e) => setPBadge(e.target.value)}
-                  placeholder="MOST POPULAR"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Features (One line per feature)
-                </label>
-                <textarea
-                  rows={4}
-                  value={pFeatures}
-                  onChange={(e) => setPFeatures(e.target.value)}
-                  placeholder="Full course access&#10;Weekly live classes&#10;Community support"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground font-mono text-xs"
-                />
-              </div>
-              <div className="pt-3 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPlanModal(false)}
-                  className="btn-outline-pill text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn-gradient text-xs">
-                  Save Plan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       <Footer />
     </div>
   );

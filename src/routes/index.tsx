@@ -68,7 +68,7 @@ function Hero() {
           rewriting your industry.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link to="/pricing" className="btn-gradient">
+          <Link to="/courses" className="btn-gradient">
             Join a Community →
           </Link>
           <Link to="/prompt-library" className="btn-outline-pill">
