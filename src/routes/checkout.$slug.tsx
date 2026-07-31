@@ -11,6 +11,9 @@ import {
   Loader2,
   Smartphone,
   Wallet,
+  Trash2,
+  ShoppingCart,
+  RotateCcw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/site/Header";
@@ -41,6 +44,7 @@ function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bkash");
   const [mfsNumber, setMfsNumber] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [isRemoved, setIsRemoved] = useState(false);
 
   useEffect(() => {
     fetchCourseBySlug(slug).then((data) => {
@@ -133,192 +137,240 @@ function CheckoutPage() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-12 gap-8 items-start">
-            {/* LEFT COLUMN: Course Order Summary */}
-            <div className="md:col-span-6 space-y-6">
-              <div className="surface-card p-6 md:p-8">
-                <div className="eyebrow mb-3">✦ Order Summary</div>
-                <h1 className="font-display font-bold text-2xl md:text-3xl text-foreground">
-                  {courseData?.title || "Creative AI Community"}
-                </h1>
-                <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                  {courseData?.subtitle ||
-                    courseData?.description ||
-                    "Master Creative design with AI workflows."}
-                </p>
-
-                <div className="mt-6 aspect-video rounded-2xl overflow-hidden border border-border bg-black/40 relative">
-                  <img
-                    src={courseData?.thumbnail_url || personaCreator}
-                    alt={courseData?.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold gradient-bg text-white shadow-lg">
-                    Instant Access
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Course Access:</span>
-                    <span className="font-semibold text-foreground">Lifetime Access</span>
-                  </div>
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span>Billing Cycle:</span>
-                    <span className="font-semibold text-foreground">
-                      {courseData?.period === "one-time"
-                        ? "One-time Payment"
-                        : `Per ${courseData?.period || "month"}`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-base pt-3 border-t border-border font-bold text-foreground">
-                    <span>Total Amount:</span>
-                    <span className="font-display text-2xl gradient-text">
-                      ৳{courseData?.price || "1,900"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-start gap-3">
-                  <ShieldCheck className="size-5 shrink-0 text-purple-400 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-foreground">100% Satisfaction Guarantee</p>
-                    <p className="mt-0.5 opacity-90">
-                      Access all weekly lessons, community Discord, live Q&A sessions, and prompt
-                      templates immediately after enrollment.
-                    </p>
-                  </div>
-                </div>
+          {isRemoved ? (
+            <div className="surface-card p-12 text-center max-w-2xl mx-auto my-8 space-y-6">
+              <div className="size-20 rounded-full bg-red-500/10 border border-red-500/20 grid place-items-center mx-auto text-red-400">
+                <ShoppingCart className="size-10 opacity-70" />
               </div>
-            </div>
-
-            {/* RIGHT COLUMN: Billing & Payment Selection */}
-            <div className="md:col-span-6 space-y-6">
-              <div className="surface-card p-6 md:p-8">
-                <h2 className="font-display font-bold text-2xl mb-6 flex items-center justify-between">
-                  <span>Checkout & Payment</span>
-                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
-                    <Lock className="size-3.5" /> 256-bit SSL Secure
-                  </span>
+              <div>
+                <h2 className="font-display font-bold text-2xl md:text-3xl text-foreground">
+                  Your Checkout is Empty
                 </h2>
-
-                <form onSubmit={handleEnrollment} className="space-y-6">
-                  {/* Account Information */}
-                  <div className="space-y-3">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Account Details
-                    </label>
-                    <div className="p-4 rounded-2xl bg-card border border-border space-y-1.5">
-                      <div className="text-sm font-semibold text-foreground">{name}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{email}</div>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Selector */}
-                  <div className="space-y-3">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Select Payment Method
-                    </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {/* bKash */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("bkash")}
-                        className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
-                          paymentMethod === "bkash"
-                            ? "bg-pink-500/20 border-pink-500 text-white shadow-lg"
-                            : "bg-card border-border text-muted-foreground hover:bg-white/5"
-                        }`}
-                      >
-                        <Wallet className="size-6 text-pink-400" />
-                        <span className="text-xs font-bold">bKash</span>
-                      </button>
-
-                      {/* Nagad */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("nagad")}
-                        className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
-                          paymentMethod === "nagad"
-                            ? "bg-orange-500/20 border-orange-500 text-white shadow-lg"
-                            : "bg-card border-border text-muted-foreground hover:bg-white/5"
-                        }`}
-                      >
-                        <Smartphone className="size-6 text-orange-400" />
-                        <span className="text-xs font-bold">Nagad</span>
-                      </button>
-
-                      {/* Card / SSLCommerz */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("card")}
-                        className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
-                          paymentMethod === "card"
-                            ? "bg-purple-500/20 border-purple-500 text-white shadow-lg"
-                            : "bg-card border-border text-muted-foreground hover:bg-white/5"
-                        }`}
-                      >
-                        <CreditCard className="size-6 text-purple-400" />
-                        <span className="text-xs font-bold">Card / SSL</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Payment Details Input */}
-                  {(paymentMethod === "bkash" || paymentMethod === "nagad") && (
-                    <div className="space-y-2 p-4 rounded-2xl bg-card border border-border">
-                      <label className="block text-xs font-semibold text-muted-foreground">
-                        Your {paymentMethod === "bkash" ? "bKash" : "Nagad"} Account Number
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={mfsNumber}
-                        onChange={(e) => setMfsNumber(e.target.value)}
-                        placeholder="01700000000"
-                        className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground font-mono text-sm focus:outline-none focus:border-purple-500"
-                      />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Enter your mobile number to authorize quick payment.
-                      </p>
-                    </div>
-                  )}
-
-                  {paymentMethod === "card" && (
-                    <div className="p-4 rounded-2xl bg-card border border-border text-xs text-muted-foreground space-y-2">
-                      <p className="font-semibold text-foreground">
-                        Credit / Debit Card (SSLCommerz Gateway)
-                      </p>
-                      <p>Supports Visa, Mastercard, AMEX, and all Bangladeshi Bank Cards.</p>
-                    </div>
-                  )}
-
-                  {/* Complete Enrollment Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={processing}
-                    className="w-full py-4 rounded-2xl btn-gradient font-bold text-base shadow-2xl flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="size-5 animate-spin" />
-                        <span>Processing Payment...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-5" />
-                        <span>Pay ৳{courseData?.price || "1,900"} & Complete Enrollment</span>
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-center text-xs text-muted-foreground">
-                    By completing enrollment, you agree to our Terms of Service.
-                  </p>
-                </form>
+                <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+                  You have removed{" "}
+                  <span className="font-semibold text-foreground">
+                    {courseData?.title || "this course"}
+                  </span>{" "}
+                  from your cart checkout.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRemoved(false);
+                    toast.success("Course restored to checkout!");
+                  }}
+                  className="btn-outline-pill text-xs inline-flex items-center gap-2"
+                >
+                  <RotateCcw className="size-3.5" /> Restore Course
+                </button>
+                <Link to="/courses" className="btn-gradient text-xs">
+                  Browse All Courses →
+                </Link>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid md:grid-cols-12 gap-8 items-start">
+              {/* LEFT COLUMN: Course Order Summary */}
+              <div className="md:col-span-6 space-y-6">
+                <div className="surface-card p-6 md:p-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="eyebrow">✦ Order Summary</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRemoved(true);
+                        toast.info("Course item removed from checkout.");
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-1 rounded-xl border border-red-500/20 transition"
+                      title="Remove course from checkout"
+                    >
+                      <Trash2 className="size-3.5" /> Remove
+                    </button>
+                  </div>
+                  <h1 className="font-display font-bold text-2xl md:text-3xl text-foreground">
+                    {courseData?.title || "Creative AI Community"}
+                  </h1>
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                    {courseData?.subtitle ||
+                      courseData?.description ||
+                      "Master Creative design with AI workflows."}
+                  </p>
+
+                  <div className="mt-6 aspect-video rounded-2xl overflow-hidden border border-border bg-black/40 relative">
+                    <img
+                      src={courseData?.thumbnail_url || personaCreator}
+                      alt={courseData?.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold gradient-bg text-white shadow-lg">
+                      Instant Access
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-3 border-t border-border pt-6 text-sm">
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Course Access:</span>
+                      <span className="font-semibold text-foreground">Lifetime Access</span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Billing Cycle:</span>
+                      <span className="font-semibold text-foreground">
+                        {courseData?.period === "one-time"
+                          ? "One-time Payment"
+                          : `Per ${courseData?.period || "month"}`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-base pt-3 border-t border-border font-bold text-foreground">
+                      <span>Total Amount:</span>
+                      <span className="font-display text-2xl gradient-text">
+                        ৳{courseData?.price || "1,900"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-start gap-3">
+                    <ShieldCheck className="size-5 shrink-0 text-purple-400 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-foreground">100% Satisfaction Guarantee</p>
+                      <p className="mt-0.5 opacity-90">
+                        Access all weekly lessons, community Discord, live Q&A sessions, and prompt
+                        templates immediately after enrollment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Billing & Payment Selection */}
+              <div className="md:col-span-6 space-y-6">
+                <div className="surface-card p-6 md:p-8">
+                  <h2 className="font-display font-bold text-2xl mb-6 flex items-center justify-between">
+                    <span>Checkout & Payment</span>
+                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                      <Lock className="size-3.5" /> 256-bit SSL Secure
+                    </span>
+                  </h2>
+
+                  <form onSubmit={handleEnrollment} className="space-y-6">
+                    {/* Account Information */}
+                    <div className="space-y-3">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Account Details
+                      </label>
+                      <div className="p-4 rounded-2xl bg-card border border-border space-y-1.5">
+                        <div className="text-sm font-semibold text-foreground">{name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{email}</div>
+                      </div>
+                    </div>
+
+                    {/* Payment Method Selector */}
+                    <div className="space-y-3">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Select Payment Method
+                      </label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* bKash */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("bkash")}
+                          className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
+                            paymentMethod === "bkash"
+                              ? "bg-pink-500/20 border-pink-500 text-white shadow-lg"
+                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                          }`}
+                        >
+                          <Wallet className="size-6 text-pink-400" />
+                          <span className="text-xs font-bold">bKash</span>
+                        </button>
+
+                        {/* Nagad */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("nagad")}
+                          className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
+                            paymentMethod === "nagad"
+                              ? "bg-orange-500/20 border-orange-500 text-white shadow-lg"
+                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                          }`}
+                        >
+                          <Smartphone className="size-6 text-orange-400" />
+                          <span className="text-xs font-bold">Nagad</span>
+                        </button>
+
+                        {/* Card / SSLCommerz */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("card")}
+                          className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
+                            paymentMethod === "card"
+                              ? "bg-purple-500/20 border-purple-500 text-white shadow-lg"
+                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                          }`}
+                        >
+                          <CreditCard className="size-6 text-purple-400" />
+                          <span className="text-xs font-bold">Card / SSL</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Payment Details Input */}
+                    {(paymentMethod === "bkash" || paymentMethod === "nagad") && (
+                      <div className="space-y-2 p-4 rounded-2xl bg-card border border-border">
+                        <label className="block text-xs font-semibold text-muted-foreground">
+                          Your {paymentMethod === "bkash" ? "bKash" : "Nagad"} Account Number
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={mfsNumber}
+                          onChange={(e) => setMfsNumber(e.target.value)}
+                          placeholder="01700000000"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground font-mono text-sm focus:outline-none focus:border-purple-500"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Enter your mobile number to authorize quick payment.
+                        </p>
+                      </div>
+                    )}
+
+                    {paymentMethod === "card" && (
+                      <div className="p-4 rounded-2xl bg-card border border-border text-xs text-muted-foreground space-y-2">
+                        <p className="font-semibold text-foreground">
+                          Credit / Debit Card (SSLCommerz Gateway)
+                        </p>
+                        <p>Supports Visa, Mastercard, AMEX, and all Bangladeshi Bank Cards.</p>
+                      </div>
+                    )}
+
+                    {/* Complete Enrollment Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={processing}
+                      className="w-full py-4 rounded-2xl btn-gradient font-bold text-base shadow-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="size-5 animate-spin" />
+                          <span>Processing Payment...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-5" />
+                          <span>Pay ৳{courseData?.price || "1,900"} & Complete Enrollment</span>
+                        </>
+                      )}
+                    </button>
+
+                    <p className="text-center text-xs text-muted-foreground">
+                      By completing enrollment, you agree to our Terms of Service.
+                    </p>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />

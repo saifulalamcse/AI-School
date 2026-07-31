@@ -58,11 +58,11 @@ function CoursePage() {
         <CourseHero activeCourse={activeCourse} />
         <VideoSection activeCourse={activeCourse} />
         <TopicsSection activeCourse={activeCourse} />
-        <TopOnePercent />
+        <TopOnePercent activeCourse={activeCourse} />
         <InsideCommunity activeCourse={activeCourse} />
         <FeaturedCreatives />
         <GalleryStrip />
-        <RecapCta />
+        <RecapCta activeCourse={activeCourse} />
         <InstructorStrip />
       </main>
       <Footer />
@@ -204,7 +204,7 @@ function TopicsSection({ activeCourse }: { activeCourse: DynamicCourse }) {
   );
 }
 
-function TopOnePercent() {
+function TopOnePercent({ activeCourse }: { activeCourse: DynamicCourse }) {
   return (
     <section className="section-light py-20">
       <div className="mx-auto max-w-5xl px-5 text-center">
@@ -359,7 +359,7 @@ function GalleryStrip() {
   );
 }
 
-function RecapCta() {
+function RecapCta({ activeCourse }: { activeCourse: DynamicCourse }) {
   return (
     <section className="py-24">
       <div className="mx-auto max-w-4xl px-5 text-center surface-card p-12 relative overflow-hidden">
