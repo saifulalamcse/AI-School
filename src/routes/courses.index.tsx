@@ -153,7 +153,11 @@ function AllCoursesPage() {
                   >
                     Explore Course <ArrowRight className="size-4" />
                   </Link>
-                  <Link to="/auth" search={{ mode: "signup" }} className="btn-outline-pill text-sm">
+                  <Link
+                    to="/checkout/$slug"
+                    params={{ slug: featuredCourse?.slug || "creative-ai-community" }}
+                    className="btn-outline-pill text-sm"
+                  >
                     Join Community
                   </Link>
                 </div>

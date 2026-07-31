@@ -116,7 +116,7 @@ function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
           ))}
         </div>
         <div className="mt-10">
-          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
+          <Link to="/checkout/$slug" params={{ slug: activeCourse.slug }} className="btn-gradient">
             Join Today →
           </Link>
         </div>
@@ -149,7 +149,7 @@ function VideoSection({ activeCourse }: { activeCourse: DynamicCourse }) {
           </div>
         </div>
         <div className="mt-8">
-          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
+          <Link to="/checkout/$slug" params={{ slug: activeCourse.slug }} className="btn-gradient">
             Enroll Now →
           </Link>
         </div>
@@ -195,7 +195,7 @@ function TopicsSection({ activeCourse }: { activeCourse: DynamicCourse }) {
           </div>
         </div>
         <div className="mt-10 text-center">
-          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
+          <Link to="/checkout/$slug" params={{ slug: activeCourse.slug }} className="btn-gradient">
             Start Learning →
           </Link>
         </div>
@@ -226,7 +226,7 @@ function TopOnePercent() {
           />
         </div>
         <div className="mt-8">
-          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
+          <Link to="/checkout/$slug" params={{ slug: activeCourse.slug }} className="btn-gradient">
             Begin the Journey →
           </Link>
         </div>
@@ -369,7 +369,7 @@ function RecapCta() {
           using AI Workflows.
         </h2>
         <div className="mt-8">
-          <Link to="/auth" search={{ mode: "signup" }} className="btn-gradient">
+          <Link to="/checkout/$slug" params={{ slug: activeCourse.slug }} className="btn-gradient">
             Join Today →
           </Link>
         </div>
