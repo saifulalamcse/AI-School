@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { NewsletterForm } from "@/components/site/NewsletterForm";
 import heroSpace from "@/assets/hero-space.jpg";
 import personaCreator from "@/assets/persona-creator.jpg";
 import laptopMockup from "@/assets/laptop-mockup.jpg";
-import { skillTracks, prompts, news, testimonials, workshops } from "@/lib/site-data";
+import { skillTracks, prompts, news, workshops } from "@/lib/site-data";
+import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,6 +31,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const [experts, setExperts] = useState<DynamicExpert[]>([]);
+
+  useEffect(() => {
+    fetchExperts().then(setExperts);
+  }, []);
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -38,7 +46,7 @@ function Home() {
         <SlowWork />
         <NewsPreview />
         <LearningMaterials />
-        <Testimonials />
+        <Testimonials experts={experts} />
         <Workshops />
         <Newsletter />
       </main>
@@ -295,7 +303,8 @@ function LearningMaterials() {
   );
 }
 
-function Testimonials() {
+function Testimonials({ experts }: { experts: DynamicExpert[] }) {
+  if (experts.length === 0) return null;
   return (
     <section className="section-light py-20">
       <div className="mx-auto max-w-7xl px-5">
@@ -306,17 +315,25 @@ function Testimonials() {
           A growing community of professionals, founders and creators trust our approach.
         </p>
         <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {testimonials.map((t) => (
+          {experts.map((expert) => (
             <div
-              key={t.name}
+              key={expert.id}
               className="rounded-2xl bg-white border border-neutral-200 overflow-hidden"
             >
-              <div className="aspect-[4/5] gradient-bg grid place-items-center text-white text-5xl font-display font-bold">
-                {t.initials}
+              <div className="aspect-[4/5] gradient-bg grid place-items-center text-white text-5xl font-display font-bold overflow-hidden">
+                {expert.avatar_url ? (
+                  <img
+                    src={expert.avatar_url}
+                    alt={expert.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{expert.initials || expert.name.slice(0, 2).toUpperCase()}</span>
+                )}
               </div>
               <div className="p-4 text-center">
-                <div className="font-semibold text-neutral-900">{t.name}</div>
-                <div className="text-xs text-neutral-500 mt-1">{t.role}</div>
+                <div className="font-semibold text-neutral-900">{expert.name}</div>
+                <div className="text-xs text-neutral-500 mt-1">{expert.role}</div>
               </div>
             </div>
           ))}

@@ -186,7 +186,7 @@ function CheckoutPage() {
                       className="inline-flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-1 rounded-xl border border-red-500/20 transition"
                       title="Remove course from checkout"
                     >
-                      <Trash2 className="size-3.5" /> Remove
+                      <Trash2 className="size-3.5" /> Remove item
                     </button>
                   </div>
                   <h1 className="font-display font-bold text-2xl md:text-3xl text-foreground">

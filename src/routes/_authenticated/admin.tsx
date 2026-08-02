@@ -16,6 +16,12 @@ import {
   Layers,
   Upload,
   Image as ImageIcon,
+  Video,
+  List,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -30,6 +36,26 @@ import {
   type DynamicPricingPlan,
 } from "@/lib/site-api";
 
+// Types for Lesson System
+type Lesson = {
+  id: string;
+  section_id: string;
+  title: string;
+  youtube_video_id: string | null;
+  duration: string | null;
+  description: string | null;
+  is_free: boolean;
+  position: number;
+};
+
+type Section = {
+  id: string;
+  course_slug: string;
+  title: string;
+  position: number;
+  lessons: Lesson[];
+};
+
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [{ title: "Admin Panel — My Course" }, { name: "robots", content: "noindex" }],
@@ -41,7 +67,28 @@ function AdminDashboardPage() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"courses" | "experts" | "pricing">("courses");
+  const [activeTab, setActiveTab] = useState<"courses" | "experts" | "lessons">("courses");
+  const [lessonsCourseSlug, setLessonsCourseSlug] = useState<string | null>(null);
+
+  // Sections state
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loadingSections, setLoadingSections] = useState(false);
+  const [showSectionModal, setShowSectionModal] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [secTitle, setSecTitle] = useState("");
+  const [savingSection, setSavingSection] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  // Lessons state
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [lessonSectionId, setLessonSectionId] = useState("");
+  const [lesTitle, setLesTitle] = useState("");
+  const [lesVideoId, setLesVideoId] = useState("");
+  const [lesDuration, setLesDuration] = useState("");
+  const [lesDescription, setLesDescription] = useState("");
+  const [lesIsFree, setLesIsFree] = useState(false);
+  const [savingLesson, setSavingLesson] = useState(false);
 
   // Courses State
   const [courses, setCourses] = useState<DynamicCourse[]>([]);
@@ -72,12 +119,16 @@ function AdminDashboardPage() {
   const [cStat3Sub, setCStat3Sub] = useState("Community Access");
   const [saving, setSaving] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
 
   // Modal State for Expert
   const [showExpertModal, setShowExpertModal] = useState(false);
+  const [editingExpertId, setEditingExpertId] = useState<string | null>(null);
   const [exName, setExName] = useState("");
   const [exRole, setExRole] = useState("");
   const [exInitials, setExInitials] = useState("");
+  const [exAvatarUrl, setExAvatarUrl] = useState("");
+  const [uploadingExpertImg, setUploadingExpertImg] = useState(false);
 
   // Modal State for Pricing Plan
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -103,6 +154,124 @@ function AdminDashboardPage() {
     setExperts(eData);
     setPlans(pData);
     setLoading(false);
+  }
+
+  // Load sections with nested lessons for a course slug
+  async function loadSections(courseSlug: string) {
+    setLoadingSections(true);
+    const { data, error } = await supabase
+      .from("sections")
+      .select("*, lessons(*)")
+      .eq("course_slug", courseSlug)
+      .order("position", { ascending: true });
+    if (error) toast.error(error.message);
+    else setSections((data as Section[]) ?? []);
+    setLoadingSections(false);
+  }
+
+  function openLessonsTab(courseSlug: string) {
+    setLessonsCourseSlug(courseSlug);
+    setActiveTab("lessons");
+    loadSections(courseSlug);
+    setSections([]);
+    setExpandedSections({});
+  }
+
+  function resetSectionForm() {
+    setEditingSectionId(null);
+    setSecTitle("");
+  }
+
+  function resetLessonForm() {
+    setEditingLessonId(null);
+    setLesTitle("");
+    setLesVideoId("");
+    setLesDuration("");
+    setLesDescription("");
+    setLesIsFree(false);
+    setLessonSectionId("");
+  }
+
+  async function handleSaveSection(e: React.FormEvent) {
+    e.preventDefault();
+    if (!secTitle.trim() || !lessonsCourseSlug) return toast.error("Section title is required.");
+    setSavingSection(true);
+    const position = editingSectionId
+      ? (sections.find((s) => s.id === editingSectionId)?.position ?? 0)
+      : sections.length;
+    let error;
+    if (editingSectionId) {
+      ({ error } = await supabase
+        .from("sections")
+        .update({ title: secTitle, position })
+        .eq("id", editingSectionId));
+    } else {
+      ({ error } = await supabase
+        .from("sections")
+        .insert({ course_slug: lessonsCourseSlug, title: secTitle, position }));
+    }
+    setSavingSection(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Section saved!");
+      setShowSectionModal(false);
+      resetSectionForm();
+      loadSections(lessonsCourseSlug);
+    }
+  }
+
+  async function handleDeleteSection(id: string) {
+    if (!confirm("Delete this section and all its lessons?")) return;
+    const { error } = await supabase.from("sections").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Section deleted.");
+      if (lessonsCourseSlug) loadSections(lessonsCourseSlug);
+    }
+  }
+
+  async function handleSaveLesson(e: React.FormEvent) {
+    e.preventDefault();
+    if (!lesTitle.trim() || !lessonSectionId)
+      return toast.error("Lesson title and section are required.");
+    setSavingLesson(true);
+    const sec = sections.find((s) => s.id === lessonSectionId);
+    const position = editingLessonId
+      ? (sec?.lessons?.find((l) => l.id === editingLessonId)?.position ?? 0)
+      : (sec?.lessons?.length ?? 0);
+    const payload = {
+      section_id: lessonSectionId,
+      title: lesTitle,
+      youtube_video_id: lesVideoId.trim() || null,
+      duration: lesDuration.trim() || null,
+      description: lesDescription.trim() || null,
+      is_free: lesIsFree,
+      position,
+    };
+    let error;
+    if (editingLessonId) {
+      ({ error } = await supabase.from("lessons").update(payload).eq("id", editingLessonId));
+    } else {
+      ({ error } = await supabase.from("lessons").insert(payload));
+    }
+    setSavingLesson(false);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Lesson saved!");
+      setShowLessonModal(false);
+      resetLessonForm();
+      if (lessonsCourseSlug) loadSections(lessonsCourseSlug);
+    }
+  }
+
+  async function handleDeleteLesson(id: string) {
+    if (!confirm("Delete this lesson?")) return;
+    const { error } = await supabase.from("lessons").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Lesson deleted.");
+      if (lessonsCourseSlug) loadSections(lessonsCourseSlug);
+    }
   }
 
   // Handle Image File Upload
@@ -238,6 +407,7 @@ function AdminDashboardPage() {
     setCStat2Sub("Weekly & Monthly");
     setCStat3Label("Lifetime");
     setCStat3Sub("Community Access");
+    setIsSlugManuallyEdited(false);
   }
 
   function openEditCourse(c: DynamicCourse) {
@@ -271,10 +441,11 @@ function AdminDashboardPage() {
       setCStat3Label("Lifetime");
       setCStat3Sub("Community Access");
     }
+    setIsSlugManuallyEdited(true);
     setShowCourseModal(true);
   }
 
-  // Handle Expert Create
+  // Handle Expert Save (Create + Update)
   async function handleSaveExpert(e: React.FormEvent) {
     e.preventDefault();
     if (!exName.trim()) return toast.error("Expert Name is required.");
@@ -288,22 +459,73 @@ function AdminDashboardPage() {
         .toUpperCase()
         .slice(0, 2);
 
-    const { error } = await supabase.from("experts").insert({
+    const payload = {
       name: exName.trim(),
       role: exRole.trim(),
       initials,
-    });
+      avatar_url: exAvatarUrl.trim() || null,
+    };
+
+    let error;
+    if (editingExpertId) {
+      ({ error } = await supabase.from("experts").update(payload).eq("id", editingExpertId));
+    } else {
+      ({ error } = await supabase.from("experts").insert(payload));
+    }
 
     setSaving(false);
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Expert / Instructor added!");
+      toast.success(editingExpertId ? "Expert updated!" : "Expert added!");
+      resetExpertForm();
       setShowExpertModal(false);
-      setExName("");
-      setExRole("");
-      setExInitials("");
       loadAllData();
+    }
+  }
+
+  function resetExpertForm() {
+    setEditingExpertId(null);
+    setExName("");
+    setExRole("");
+    setExInitials("");
+    setExAvatarUrl("");
+  }
+
+  function openEditExpert(ex: {
+    id: string;
+    name: string;
+    role: string | null;
+    initials: string | null;
+    avatar_url: string | null;
+  }) {
+    setEditingExpertId(ex.id);
+    setExName(ex.name);
+    setExRole(ex.role || "");
+    setExInitials(ex.initials || "");
+    setExAvatarUrl(ex.avatar_url || "");
+    setShowExpertModal(true);
+  }
+
+  async function handleExpertAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingExpertImg(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `expert-${Date.now()}.${fileExt}`;
+      const { error: upErr } = await supabase.storage
+        .from("course-assets")
+        .upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("course-assets").getPublicUrl(fileName);
+      setExAvatarUrl(urlData.publicUrl);
+      toast.success("Avatar uploaded!");
+    } catch (err) {
+      toast.error("Upload failed.");
+      console.error(err);
+    } finally {
+      setUploadingExpertImg(false);
     }
   }
 
@@ -451,7 +673,7 @@ function AdminDashboardPage() {
           </div>
 
           {/* Admin Navigation Tabs */}
-          <div className="flex gap-2 mt-10 border-b border-border pb-3">
+          <div className="flex gap-2 mt-10 border-b border-border pb-3 flex-wrap">
             <button
               onClick={() => setActiveTab("courses")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
@@ -472,6 +694,18 @@ function AdminDashboardPage() {
             >
               🎓 Experts / Instructors ({experts.length})
             </button>
+            {lessonsCourseSlug && (
+              <button
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                  activeTab === "lessons"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                }`}
+                onClick={() => setActiveTab("lessons")}
+              >
+                🎬 Lessons: {lessonsCourseSlug}
+              </button>
+            )}
           </div>
 
           {/* TAB 1: COURSES MANAGEMENT */}
@@ -543,7 +777,13 @@ function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => openLessonsTab(c.slug)}
+                          className="px-3 py-2 rounded-xl text-xs font-medium border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 flex items-center gap-1.5"
+                        >
+                          <List className="size-3.5" /> Manage Lessons
+                        </button>
                         <button
                           onClick={() => openEditCourse(c)}
                           className="px-3 py-2 rounded-xl text-xs font-medium border border-border hover:bg-white/5 flex items-center gap-1.5"
@@ -581,29 +821,396 @@ function AdminDashboardPage() {
                 {experts.map((ex) => (
                   <div key={ex.id} className="surface-card p-5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full gradient-bg grid place-items-center text-white font-bold text-sm">
-                        {ex.initials || "EX"}
+                      <div className="size-10 rounded-full gradient-bg grid place-items-center text-white font-bold text-sm overflow-hidden shrink-0">
+                        {ex.avatar_url ? (
+                          <img
+                            src={ex.avatar_url}
+                            alt={ex.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          ex.initials || "EX"
+                        )}
                       </div>
                       <div>
                         <h4 className="font-display font-semibold text-base">{ex.name}</h4>
                         <p className="text-xs text-muted-foreground">{ex.role}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteExpert(ex.id)}
-                      className="p-2 rounded-xl text-red-400 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditExpert(ex)}
+                        className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10"
+                      >
+                        <Edit className="size-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExpert(ex.id)}
+                        className="p-2 rounded-xl text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* TAB 3: LESSONS MANAGEMENT */}
+          {activeTab === "lessons" && lessonsCourseSlug && (
+            <div className="mt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="font-display font-bold text-xl">Lesson Manager</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Course:{" "}
+                    <span className="text-purple-300 font-semibold">{lessonsCourseSlug}</span>
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      resetSectionForm();
+                      setShowSectionModal(true);
+                    }}
+                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Plus className="size-3.5" /> Add Section
+                  </button>
+                  <button
+                    onClick={() => {
+                      resetLessonForm();
+                      if (sections.length > 0) setLessonSectionId(sections[0].id);
+                      setShowLessonModal(true);
+                    }}
+                    className="btn-gradient text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Plus className="size-3.5" /> Add Lesson
+                  </button>
+                </div>
+              </div>
+
+              {loadingSections ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  <Loader2 className="size-6 animate-spin mx-auto mb-2 text-purple-400" />
+                  Loading sections...
+                </div>
+              ) : sections.length === 0 ? (
+                <div className="py-16 text-center surface-card">
+                  <List className="size-10 text-purple-400 mx-auto mb-3" />
+                  <h4 className="font-display font-bold text-lg">No sections yet</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Start by adding a section (e.g. "Week 1").
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sections.map((sec) => (
+                    <div key={sec.id} className="surface-card overflow-hidden">
+                      {/* Section Header */}
+                      <div
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/3 transition"
+                        onClick={() =>
+                          setExpandedSections((prev) => ({ ...prev, [sec.id]: !prev[sec.id] }))
+                        }
+                      >
+                        <div className="flex items-center gap-3">
+                          {expandedSections[sec.id] ? (
+                            <ChevronUp className="size-4 text-purple-400" />
+                          ) : (
+                            <ChevronDown className="size-4 text-purple-400" />
+                          )}
+                          <span className="font-semibold text-foreground">{sec.title}</span>
+                          <span className="text-xs text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">
+                            {sec.lessons?.length ?? 0} lessons
+                          </span>
+                        </div>
+                        <div
+                          className="flex items-center gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => {
+                              setEditingSectionId(sec.id);
+                              setSecTitle(sec.title);
+                              setShowSectionModal(true);
+                            }}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition"
+                          >
+                            <Edit className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSection(sec.id)}
+                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Lessons List */}
+                      {expandedSections[sec.id] && (
+                        <div className="border-t border-border divide-y divide-border">
+                          {(sec.lessons ?? []).length === 0 ? (
+                            <div className="px-6 py-5 text-sm text-muted-foreground">
+                              No lessons yet.{" "}
+                              <button
+                                className="text-purple-400 underline"
+                                onClick={() => {
+                                  resetLessonForm();
+                                  setLessonSectionId(sec.id);
+                                  setShowLessonModal(true);
+                                }}
+                              >
+                                Add one
+                              </button>
+                            </div>
+                          ) : (
+                            (sec.lessons ?? [])
+                              .sort((a, b) => a.position - b.position)
+                              .map((lesson) => (
+                                <div
+                                  key={lesson.id}
+                                  className="flex items-center justify-between px-6 py-3 hover:bg-white/3 transition"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <Video className="size-4 text-purple-400 shrink-0" />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium truncate">{lesson.title}</p>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        {lesson.duration && (
+                                          <span className="text-xs text-muted-foreground">
+                                            {lesson.duration}
+                                          </span>
+                                        )}
+                                        {lesson.youtube_video_id ? (
+                                          <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+                                            ▶ {lesson.youtube_video_id}
+                                          </span>
+                                        ) : (
+                                          <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                                            No video
+                                          </span>
+                                        )}
+                                        {lesson.is_free ? (
+                                          <span className="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                            <Eye className="size-2.5" /> Free Preview
+                                          </span>
+                                        ) : (
+                                          <span className="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                            <EyeOff className="size-2.5" /> Paid
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => {
+                                        setEditingLessonId(lesson.id);
+                                        setLessonSectionId(lesson.section_id);
+                                        setLesTitle(lesson.title);
+                                        setLesVideoId(lesson.youtube_video_id ?? "");
+                                        setLesDuration(lesson.duration ?? "");
+                                        setLesDescription(lesson.description ?? "");
+                                        setLesIsFree(lesson.is_free);
+                                        setShowLessonModal(true);
+                                      }}
+                                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10"
+                                    >
+                                      <Edit className="size-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteLesson(lesson.id)}
+                                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                          )}
+                          <div className="px-6 py-3">
+                            <button
+                              onClick={() => {
+                                resetLessonForm();
+                                setLessonSectionId(sec.id);
+                                setShowLessonModal(true);
+                              }}
+                              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1.5 transition"
+                            >
+                              <Plus className="size-3" /> Add lesson to this section
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* MODAL: ADD / EDIT COURSE */}
+      {/* MODAL: ADD / EDIT SECTION */}
+      {showSectionModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4">
+          <div className="bg-background border border-border w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => {
+                setShowSectionModal(false);
+                resetSectionForm();
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
+            >
+              <X className="size-5" />
+            </button>
+            <h3 className="font-display font-bold text-xl mb-5">
+              {editingSectionId ? "Edit Section" : "Add Section"}
+            </h3>
+            <form onSubmit={handleSaveSection} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Section Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={secTitle}
+                  onChange={(e) => setSecTitle(e.target.value)}
+                  placeholder="e.g. Week 1 — ChatGPT Basics"
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={savingSection}
+                className="btn-gradient w-full text-sm flex items-center justify-center gap-2"
+              >
+                {savingSection && <Loader2 className="size-4 animate-spin" />}
+                {editingSectionId ? "Update Section" : "Add Section"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT LESSON */}
+      {showLessonModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
+          <div className="bg-background border border-border w-full max-w-md rounded-3xl p-6 shadow-2xl relative my-8">
+            <button
+              onClick={() => {
+                setShowLessonModal(false);
+                resetLessonForm();
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
+            >
+              <X className="size-5" />
+            </button>
+            <h3 className="font-display font-bold text-xl mb-5">
+              {editingLessonId ? "Edit Lesson" : "Add Lesson"}
+            </h3>
+            <form onSubmit={handleSaveLesson} className="space-y-4 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Section
+                </label>
+                <select
+                  required
+                  value={lessonSectionId}
+                  onChange={(e) => setLessonSectionId(e.target.value)}
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                >
+                  <option value="">Select a section...</option>
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Lesson Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={lesTitle}
+                  onChange={(e) => setLesTitle(e.target.value)}
+                  placeholder="e.g. Introduction to ChatGPT"
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  YouTube Video ID
+                </label>
+                <input
+                  type="text"
+                  value={lesVideoId}
+                  onChange={(e) => setLesVideoId(e.target.value)}
+                  placeholder="e.g. KoqOe4wUXTM"
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  From: youtube.com/watch?v=<strong>KoqOe4wUXTM</strong>
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Duration
+                </label>
+                <input
+                  type="text"
+                  value={lesDuration}
+                  onChange={(e) => setLesDuration(e.target.value)}
+                  placeholder="e.g. 12:34"
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Description (optional)
+                </label>
+                <textarea
+                  value={lesDescription}
+                  onChange={(e) => setLesDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Brief description of what this lesson covers..."
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
+                />
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-border">
+                <input
+                  type="checkbox"
+                  id="is_free"
+                  checked={lesIsFree}
+                  onChange={(e) => setLesIsFree(e.target.checked)}
+                  className="size-4 rounded accent-purple-500"
+                />
+                <label htmlFor="is_free" className="text-sm cursor-pointer">
+                  <span className="font-semibold">Free Preview</span>
+                  <span className="text-muted-foreground ml-1">
+                    (visible to everyone without enrollment)
+                  </span>
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={savingLesson}
+                className="btn-gradient w-full text-sm flex items-center justify-center gap-2"
+              >
+                {savingLesson && <Loader2 className="size-4 animate-spin" />}
+                {editingLessonId ? "Update Lesson" : "Add Lesson"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       {showCourseModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
           <div className="bg-background border border-border w-full max-w-xl rounded-3xl p-6 shadow-2xl relative my-8">
@@ -626,7 +1233,20 @@ function AdminDashboardPage() {
                   type="text"
                   required
                   value={cTitle}
-                  onChange={(e) => CSetTitle(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    CSetTitle(val);
+                    if (!isSlugManuallyEdited) {
+                      setCSlug(
+                        val
+                          .toLowerCase()
+                          .trim()
+                          .replace(/[^\w\s-]/g, "")
+                          .replace(/[\s_-]+/g, "-")
+                          .replace(/^-+|-+$/g, ""),
+                      );
+                    }
+                  }}
                   placeholder="e.g. Creative AI Community"
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
                 />
@@ -690,10 +1310,18 @@ function AdminDashboardPage() {
                   type="text"
                   required
                   value={cSlug}
-                  onChange={(e) => setCSlug(e.target.value)}
+                  onChange={(e) => {
+                    setCSlug(e.target.value);
+                    setIsSlugManuallyEdited(true);
+                  }}
                   placeholder="creative-ai-community"
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
                 />
+                {editingCourseId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ⚠️ Slug পরিবর্তন করলে কোর্সের URL পরিবর্তন হবে।
+                  </p>
+                )}
               </div>
 
               <div>
@@ -880,18 +1508,62 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      {/* MODAL: ADD EXPERT */}
+      {/* MODAL: ADD / EDIT EXPERT */}
       {showExpertModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4">
           <div className="bg-background border border-border w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
             <button
-              onClick={() => setShowExpertModal(false)}
+              onClick={() => {
+                resetExpertForm();
+                setShowExpertModal(false);
+              }}
               className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
             >
               <X className="size-5" />
             </button>
-            <h3 className="font-display font-bold text-2xl mb-5">Add New Expert / Instructor</h3>
+            <h3 className="font-display font-bold text-2xl mb-5">
+              {editingExpertId ? "Edit Expert" : "Add New Expert / Instructor"}
+            </h3>
             <form onSubmit={handleSaveExpert} className="space-y-4 text-sm">
+              {/* Avatar */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-2">
+                  Avatar Photo
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="size-16 rounded-full gradient-bg grid place-items-center text-white font-bold text-xl overflow-hidden shrink-0">
+                    {exAvatarUrl ? (
+                      <img src={exAvatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{exName ? exName.slice(0, 2).toUpperCase() : "?"}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <label className="btn-outline-pill text-xs inline-flex items-center gap-1.5 cursor-pointer py-2 px-3">
+                      {uploadingExpertImg ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5 text-purple-400" />
+                      )}
+                      <span>{uploadingExpertImg ? "Uploading..." : "Upload Photo"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleExpertAvatarUpload}
+                        disabled={uploadingExpertImg}
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      value={exAvatarUrl}
+                      onChange={(e) => setExAvatarUrl(e.target.value)}
+                      placeholder="or paste image URL..."
+                      className="w-full px-3 py-1.5 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Full Name
@@ -917,16 +1589,37 @@ function AdminDashboardPage() {
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Initials (optional — auto-generated if blank)
+                </label>
+                <input
+                  type="text"
+                  value={exInitials}
+                  onChange={(e) => setExInitials(e.target.value.toUpperCase().slice(0, 3))}
+                  placeholder="e.g. SA"
+                  maxLength={3}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
+                />
+              </div>
               <div className="pt-3 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowExpertModal(false)}
+                  onClick={() => {
+                    resetExpertForm();
+                    setShowExpertModal(false);
+                  }}
                   className="btn-outline-pill text-xs"
                 >
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn-gradient text-xs">
-                  Save Expert
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="size-4 animate-spin" />}
+                  {editingExpertId ? "Update Expert" : "Save Expert"}
                 </button>
               </div>
             </form>

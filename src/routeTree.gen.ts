@@ -21,6 +21,8 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as CheckoutSlugRouteImport } from './routes/checkout.$slug'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AuthenticatedDashboardCoursesSlugRouteImport } from './routes/_authenticated/dashboard.courses.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +83,18 @@ const CoursesSlugRoute = CoursesSlugRouteImport.update({
   path: '/courses/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardCoursesSlugRoute =
+  AuthenticatedDashboardCoursesSlugRouteImport.update({
+    id: '/courses/$slug',
+    path: '/courses/$slug',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,10 +104,12 @@ export interface FileRoutesByFullPath {
   '/prompt-library': typeof PromptLibraryRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses/': typeof CoursesIndexRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,10 +119,11 @@ export interface FileRoutesByTo {
   '/prompt-library': typeof PromptLibraryRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses': typeof CoursesIndexRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,10 +135,12 @@ export interface FileRoutesById {
   '/prompt-library': typeof PromptLibraryRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses/': typeof CoursesIndexRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +156,8 @@ export interface FileRouteTypes {
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/courses/'
+    | '/dashboard/'
+    | '/dashboard/courses/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -146,10 +167,11 @@ export interface FileRouteTypes {
     | '/prompt-library'
     | '/reset-password'
     | '/admin'
-    | '/dashboard'
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/courses'
+    | '/dashboard'
+    | '/dashboard/courses/$slug'
   id:
     | '__root__'
     | '/'
@@ -164,6 +186,8 @@ export interface FileRouteTypes {
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/courses/'
+    | '/_authenticated/dashboard/'
+    | '/_authenticated/dashboard/courses/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,17 +289,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/courses/$slug': {
+      id: '/_authenticated/dashboard/courses/$slug'
+      path: '/courses/$slug'
+      fullPath: '/dashboard/courses/$slug'
+      preLoaderRoute: typeof AuthenticatedDashboardCoursesSlugRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardCoursesSlugRoute: typeof AuthenticatedDashboardCoursesSlugRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+    AuthenticatedDashboardCoursesSlugRoute:
+      AuthenticatedDashboardCoursesSlugRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
