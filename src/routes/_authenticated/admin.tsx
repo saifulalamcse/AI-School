@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -67,7 +68,9 @@ function AdminDashboardPage() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"courses" | "experts" | "lessons">("courses");
+  const [activeTab, setActiveTab] = useState<"courses" | "experts" | "lessons" | "prompts">(
+    "courses",
+  );
   const [lessonsCourseSlug, setLessonsCourseSlug] = useState<string | null>(null);
 
   // Sections state
@@ -94,6 +97,7 @@ function AdminDashboardPage() {
   const [courses, setCourses] = useState<DynamicCourse[]>([]);
   const [experts, setExperts] = useState<DynamicExpert[]>([]);
   const [plans, setPlans] = useState<DynamicPricingPlan[]>([]);
+  const [prompts, setPrompts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal State for Course
@@ -139,20 +143,35 @@ function AdminDashboardPage() {
   const [pBadge, setPBadge] = useState("");
   const [pFeatures, setPFeatures] = useState("");
 
+  // Modal State for Prompt Library
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [pTitle, setPTitle] = useState("");
+  const [pCategory, setPCategory] = useState("AI Productivity");
+  const [pTags, setPTags] = useState("");
+  const [pImageUrl, setPImageUrl] = useState("");
+  const [pIntro, setPIntro] = useState("");
+  const [pBlocks, setPBlocks] = useState<
+    { id: string; tool: string; promptText: string; imageUrl: string }[]
+  >([]);
+  const [uploadingPromptImg, setUploadingPromptImg] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     loadAllData();
   }, []);
 
   async function loadAllData() {
     setLoading(true);
-    const [cData, eData, pData] = await Promise.all([
+    const [cData, eData, pData, promptsRes] = await Promise.all([
       fetchCourses(),
       fetchExperts(),
       fetchPricingPlans(),
+      supabase.from("prompts").select("*").order("created_at", { ascending: false }),
     ]);
     setCourses(cData);
     setExperts(eData);
     setPlans(pData);
+    setPrompts(promptsRes.data ?? []);
     setLoading(false);
   }
 
@@ -587,6 +606,135 @@ function AdminDashboardPage() {
     }
   }
 
+  // Handle Prompt Save (Create + Update)
+  async function handleSavePrompt(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pTitle.trim()) return toast.error("Prompt title is required.");
+    if (!pIntro.trim()) return toast.error("Description / Intro is required.");
+    setSaving(true);
+
+    const tagsArr = pTags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    // Prompt content JSON payload
+    const promptPayload = {
+      intro: pIntro.trim(),
+      blocks: pBlocks.map((b) => ({
+        tool: b.tool.trim() || "Midjourney",
+        promptText: b.promptText.trim(),
+        imageUrl: b.imageUrl.trim() || null,
+      })),
+    };
+
+    const payload = {
+      title: pTitle.trim(),
+      category: pCategory,
+      tags: tagsArr,
+      image_url: pImageUrl.trim() || null,
+      prompt: JSON.stringify(promptPayload),
+    };
+
+    let error;
+    if (editingPromptId) {
+      ({ error } = await supabase.from("prompts").update(payload).eq("id", editingPromptId));
+    } else {
+      ({ error } = await supabase.from("prompts").insert(payload));
+    }
+
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(editingPromptId ? "Prompt updated!" : "Prompt added!");
+      resetPromptForm();
+      setShowPromptModal(false);
+      loadAllData();
+    }
+  }
+
+  function resetPromptForm() {
+    setEditingPromptId(null);
+    setPTitle("");
+    setPCategory("AI Productivity");
+    setPTags("");
+    setPImageUrl("");
+    setPIntro("");
+    setPBlocks([]);
+  }
+
+  function openEditPrompt(pr: any) {
+    setEditingPromptId(pr.id);
+    setPTitle(pr.title);
+    setPCategory(pr.category || "AI Productivity");
+    setPTags(Array.isArray(pr.tags) ? pr.tags.join(", ") : "");
+    setPImageUrl(pr.image_url || "");
+
+    try {
+      const parsed = JSON.parse(pr.prompt);
+      setPIntro(parsed.intro || "");
+      setPBlocks(
+        (parsed.blocks || []).map((b: any, index: number) => ({
+          id: String(index + 1),
+          tool: b.tool || "Midjourney",
+          promptText: b.promptText || "",
+          imageUrl: b.imageUrl || "",
+        })),
+      );
+    } catch {
+      setPIntro(pr.prompt || "");
+      setPBlocks([]);
+    }
+
+    setShowPromptModal(true);
+  }
+
+  async function handleDeletePrompt(id: string) {
+    if (!confirm("Delete this prompt?")) return;
+    const { error } = await supabase.from("prompts").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Prompt deleted.");
+      loadAllData();
+    }
+  }
+
+  async function handlePromptImageUpload(file: File, blockId?: string) {
+    try {
+      if (blockId) {
+        setUploadingPromptImg((prev) => ({ ...prev, [blockId]: true }));
+      } else {
+        setUploadingPromptImg((prev) => ({ ...prev, main: true }));
+      }
+      const fileExt = file.name.split(".").pop();
+      const fileName = `prompt-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: upErr } = await supabase.storage
+        .from("course-assets")
+        .upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("course-assets").getPublicUrl(fileName);
+
+      if (blockId) {
+        setPBlocks((prev) =>
+          prev.map((b) => (b.id === blockId ? { ...b, imageUrl: urlData.publicUrl } : b)),
+        );
+      } else {
+        setPImageUrl(urlData.publicUrl);
+      }
+      toast.success("Image uploaded successfully!");
+    } catch (err) {
+      toast.error("Upload failed.");
+      console.error(err);
+    } finally {
+      if (blockId) {
+        setUploadingPromptImg((prev) => ({ ...prev, [blockId]: false }));
+      } else {
+        setUploadingPromptImg((prev) => ({ ...prev, main: false }));
+      }
+    }
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -706,6 +854,16 @@ function AdminDashboardPage() {
                 🎬 Lessons: {lessonsCourseSlug}
               </button>
             )}
+            <button
+              onClick={() => setActiveTab("prompts")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === "prompts"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              ✨ Prompt Library ({prompts.length})
+            </button>
           </div>
 
           {/* TAB 1: COURSES MANAGEMENT */}
@@ -1049,6 +1207,71 @@ function AdminDashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+          {/* TAB 4: PROMPTS MANAGEMENT */}
+          {activeTab === "prompts" && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-bold text-xl">Prompt Library</h3>
+                <button
+                  onClick={() => setShowPromptModal(true)}
+                  className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                >
+                  <Plus className="size-3.5" /> Add Prompt
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {prompts.map((pr) => (
+                  <div
+                    key={pr.id}
+                    className="surface-card overflow-hidden flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="h-28 relative bg-purple-950/20 overflow-hidden">
+                        {pr.image_url ? (
+                          <img src={pr.image_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full gradient-bg opacity-30" />
+                        )}
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-semibold text-purple-300">
+                          {pr.category}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <h4 className="font-display font-semibold text-base line-clamp-1">
+                          {pr.title}
+                        </h4>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(pr.tags || []).slice(0, 3).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className="text-[10px] bg-white/5 text-muted-foreground px-1.5 py-0.5 rounded"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4 border-t border-border flex justify-end gap-2">
+                      <button
+                        onClick={() => openEditPrompt(pr)}
+                        className="btn-outline-pill text-xs py-1.5 px-3"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeletePrompt(pr.id)}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -1501,6 +1724,266 @@ function AdminDashboardPage() {
                   className="btn-gradient text-xs inline-flex items-center gap-2"
                 >
                   {saving ? <Loader2 className="size-4 animate-spin" /> : "Save Course"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT PROMPT */}
+      {showPromptModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
+          <div className="bg-background border border-border w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative my-8">
+            <button
+              onClick={() => {
+                resetPromptForm();
+                setShowPromptModal(false);
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
+            >
+              <X className="size-5" />
+            </button>
+            <h3 className="font-display font-bold text-2xl mb-5">
+              {editingPromptId ? "Edit Prompt" : "Add New Prompt"}
+            </h3>
+            <form onSubmit={handleSavePrompt} className="space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Prompt Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={pTitle}
+                    onChange={(e) => setPTitle(e.target.value)}
+                    placeholder="e.g. Create Studio-Quality Face Wash Product Photos"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={pCategory}
+                    onChange={(e) => setPCategory(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none"
+                  >
+                    <option value="AI Productivity">AI Productivity</option>
+                    <option value="AI Tools">AI Tools</option>
+                    <option value="Design">Design</option>
+                    <option value="Image Generation">Image Generation</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Tags (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={pTags}
+                    onChange={(e) => setPTags(e.target.value)}
+                    placeholder="e.g. midjourney, product, marketing"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Thumbnail Banner URL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={pImageUrl}
+                      onChange={(e) => setPImageUrl(e.target.value)}
+                      placeholder="Image URL..."
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground"
+                    />
+                    <label className="btn-outline-pill text-xs inline-flex items-center gap-1.5 cursor-pointer py-2 px-3 shrink-0">
+                      {uploadingPromptImg["main"] ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5 text-purple-400" />
+                      )}
+                      <span>Upload</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handlePromptImageUpload(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Intro Description
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={pIntro}
+                  onChange={(e) => setPIntro(e.target.value)}
+                  placeholder="Introduce the prompt workflow..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground resize-none"
+                />
+              </div>
+
+              {/* Dynamic Prompt Blocks */}
+              <div className="space-y-3 border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider">
+                    Prompt Blocks / Steps
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPBlocks((prev) => [
+                        ...prev,
+                        {
+                          id: String(Date.now()),
+                          tool: "Midjourney",
+                          promptText: "",
+                          imageUrl: "",
+                        },
+                      ])
+                    }
+                    className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                  >
+                    <Plus className="size-3.5" /> Add Block / Step
+                  </button>
+                </div>
+
+                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  {pBlocks.map((block, idx) => (
+                    <div
+                      key={block.id}
+                      className="p-4 rounded-2xl border border-border bg-card/50 space-y-3 relative"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPBlocks((prev) => prev.filter((b) => b.id !== block.id))}
+                        className="absolute top-2 right-2 text-red-400 hover:text-red-300"
+                      >
+                        <X className="size-4" />
+                      </button>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-muted-foreground mb-1">
+                            Tool / Platform
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={block.tool}
+                            onChange={(e) =>
+                              setPBlocks((prev) =>
+                                prev.map((b) =>
+                                  b.id === block.id ? { ...b, tool: e.target.value } : b,
+                                ),
+                              )
+                            }
+                            placeholder="e.g. Midjourney, ChatGPT"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-muted-foreground mb-1">
+                            Result Image URL
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={block.imageUrl}
+                              onChange={(e) =>
+                                setPBlocks((prev) =>
+                                  prev.map((b) =>
+                                    b.id === block.id ? { ...b, imageUrl: e.target.value } : b,
+                                  ),
+                                )
+                              }
+                              placeholder="Output Image URL..."
+                              className="w-full px-2 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground"
+                            />
+                            <label className="btn-outline-pill text-[10px] inline-flex items-center gap-1 cursor-pointer py-1 px-2.5 shrink-0">
+                              {uploadingPromptImg[block.id] ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                <Upload className="size-3 text-purple-400" />
+                              )}
+                              <span>Upload</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handlePromptImageUpload(file, block.id);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-semibold text-muted-foreground mb-1">
+                          Prompt Code / Text
+                        </label>
+                        <textarea
+                          rows={2}
+                          required
+                          value={block.promptText}
+                          onChange={(e) =>
+                            setPBlocks((prev) =>
+                              prev.map((b) =>
+                                b.id === block.id ? { ...b, promptText: e.target.value } : b,
+                              ),
+                            )
+                          }
+                          placeholder="Paste the prompt here..."
+                          className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background text-foreground resize-none"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {pBlocks.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      No steps added yet. Add a step above.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetPromptForm();
+                    setShowPromptModal(false);
+                  }}
+                  className="btn-outline-pill text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="size-4 animate-spin" />}
+                  {editingPromptId ? "Update Prompt" : "Save Prompt"}
                 </button>
               </div>
             </form>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/site/Header";
@@ -6,8 +7,20 @@ import { NewsletterForm } from "@/components/site/NewsletterForm";
 import heroSpace from "@/assets/hero-space.jpg";
 import personaCreator from "@/assets/persona-creator.jpg";
 import laptopMockup from "@/assets/laptop-mockup.jpg";
-import { skillTracks, prompts, news, workshops } from "@/lib/site-data";
+import cuteRobot from "@/assets/cute-robot.png";
+import {
+  GraduationCap,
+  Rocket,
+  Award,
+  Megaphone,
+  User,
+  PenTool,
+  Video,
+  Loader2,
+} from "lucide-react";
+import { skillTracks, news, workshops } from "@/lib/site-data";
 import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -57,49 +70,151 @@ function Home() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden bg-background pt-32 pb-24 lg:py-40">
+      {/* Space grid background effect */}
       <img
         src={heroSpace}
         alt=""
         width={1920}
         height={1080}
-        className="absolute inset-0 h-full w-full object-cover opacity-70"
+        className="absolute inset-0 h-full w-full object-cover opacity-30 select-none pointer-events-none"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/30 to-background" />
-      <div className="relative mx-auto max-w-7xl px-5 pt-40 pb-24 text-center">
-        <span className="eyebrow">✦ Increase your productivity up to 10X</span>
-        <h1 className="mt-6 font-display font-bold text-6xl md:text-8xl leading-[0.95]">
-          <span className="gradient-text">AI</span> for You.
-        </h1>
-        <p className="mt-6 mx-auto max-w-xl text-muted-foreground">
-          Communities, prompts and daily AI news — everything you need to become fluent in the tools
-          rewriting your industry.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link to="/courses" className="btn-gradient">
-            Join a Community →
-          </Link>
-          <Link to="/prompt-library" className="btn-outline-pill">
-            Explore Prompts
-          </Link>
-        </div>
+      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/10 to-background" />
 
-        {/* Persona card */}
-        <div className="relative mt-20 mx-auto max-w-sm">
-          <div className="surface-card overflow-hidden rounded-3xl shadow-[0_20px_80px_-20px_oklch(0.6_0.24_320/0.5)]">
-            <img
-              src={personaCreator}
-              alt="Creator persona"
-              width={800}
-              height={1000}
-              className="w-full aspect-[4/5] object-cover"
-            />
-            <div className="p-5 text-left">
-              <div className="text-xs text-muted-foreground uppercase tracking-widest">Persona</div>
-              <div className="mt-1 font-display font-bold text-2xl gradient-text">Entrepreneur</div>
+      {/* Futuristic glow elements */}
+      <div className="absolute -left-40 top-1/4 size-[400px] rounded-full gradient-bg opacity-10 blur-3xl pointer-events-none" />
+      <div className="absolute right-0 bottom-1/4 size-[500px] rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
+      <div className="relative mx-auto max-w-7xl px-5 flex flex-col lg:flex-row items-center justify-between gap-12">
+        {/* Left Side: Text and CTA */}
+        <div className="flex flex-col text-left lg:w-1/2 space-y-6 z-10">
+          <h1 className="font-display font-bold text-5xl md:text-7xl leading-none tracking-tight">
+            <span className="gradient-text">AI</span> for You.
+          </h1>
+          <h2 className="font-display font-semibold text-2xl md:text-3xl text-white">
+            Learn<span className="text-purple-500">.</span> Build
+            <span className="text-pink-500">.</span> Succeed
+            <span className="text-amber-500">.</span>
+          </h2>
+          <p className="max-w-md text-base md:text-lg text-muted-foreground">
+            Practical AI courses designed for creators, professionals, and future-builders.
+          </p>
+          <div className="pt-2">
+            <Link
+              to="/courses"
+              className="btn-gradient px-8 py-3.5 rounded-full inline-flex items-center gap-2 text-sm font-semibold hover:opacity-90 transition shadow-lg shadow-purple-500/20"
+            >
+              Start Your AI Journey →
+            </Link>
+          </div>
+
+          {/* Key Points */}
+          <div className="pt-8 grid grid-cols-3 gap-4 border-t border-white/10 max-w-lg">
+            <div className="flex items-start gap-2">
+              <GraduationCap className="size-5 text-purple-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Learn</h4>
+                <p className="text-xs text-muted-foreground">Step-by-step</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Rocket className="size-5 text-pink-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Apply</h4>
+                <p className="text-xs text-muted-foreground">Real-world Skills</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Award className="size-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Achieve</h4>
+                <p className="text-xs text-muted-foreground">Greater Tomorrow</p>
+              </div>
             </div>
           </div>
-          <div className="absolute -inset-8 -z-10 rounded-full blur-3xl gradient-bg opacity-30" />
+        </div>
+
+        {/* Right Side: Beautiful Tilted Cards Deck */}
+        <div className="relative lg:w-1/2 h-[450px] md:h-[500px] flex items-center justify-center w-full z-10 select-none">
+          {/* Circular Badge - Top Right */}
+          <div className="absolute top-0 right-2 md:right-8 z-20 animate-pulse">
+            <div className="relative size-24 rounded-full border border-purple-500/50 bg-purple-950/40 backdrop-blur-md flex flex-col items-center justify-center p-3 text-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+              <span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest leading-none">
+                Practical
+              </span>
+              <span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest leading-none mt-0.5">
+                AI Skills
+              </span>
+              <span className="text-[8px] font-semibold text-white/80 mt-1">Real Results</span>
+            </div>
+          </div>
+
+          {/* Cards Container */}
+          <div className="relative w-full max-w-md h-full flex items-center justify-center">
+            {/* Card 1: Digital Marketer (Red/Orange) */}
+            <div className="absolute left-[2%] rotate-[-15deg] translate-y-6 hover:translate-y-0 hover:-rotate-12 transition-all duration-300 w-32 md:w-40 aspect-[2/3] rounded-2xl border border-red-500/30 bg-gradient-to-b from-red-950/80 to-black p-4 flex flex-col justify-between shadow-2xl">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-red-400">
+                Digital Marketer
+              </span>
+              <div className="flex-1 flex items-center justify-center">
+                <Megaphone className="size-8 md:size-10 text-red-500 opacity-80" />
+              </div>
+            </div>
+
+            {/* Card 2: Freelancer (Gold) */}
+            <div className="absolute left-[16%] rotate-[-8deg] translate-y-3 hover:translate-y-0 hover:-rotate-4 transition-all duration-300 w-32 md:w-40 aspect-[2/3] rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-950/80 to-black p-4 flex flex-col justify-between shadow-2xl z-[2]">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-amber-400">
+                Freelancer
+              </span>
+              <div className="flex-1 flex items-center justify-center">
+                <User className="size-8 md:size-10 text-amber-500 opacity-80" />
+              </div>
+            </div>
+
+            {/* Card 3: Entrepreneurs (Robot Central Highlighted Card) */}
+            <div className="absolute z-[10] scale-105 md:scale-110 -translate-y-2 hover:-translate-y-6 transition-all duration-300 w-40 md:w-48 aspect-[2/3] rounded-2xl border-2 border-purple-500 bg-gradient-to-b from-purple-950 to-black p-4 flex flex-col justify-between shadow-[0_0_45px_rgba(168,85,247,0.5)]">
+              <div className="text-center space-y-0.5">
+                <span className="text-[8px] font-bold tracking-widest uppercase text-purple-300 block">
+                  AI Tools for
+                </span>
+                <span className="text-xs md:text-sm font-bold text-white uppercase tracking-wider block">
+                  Entrepreneurs
+                </span>
+              </div>
+              <div className="flex-1 flex items-center justify-center overflow-hidden my-2">
+                <img
+                  src={cuteRobot}
+                  alt="AI Robot"
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]"
+                />
+              </div>
+              <div className="flex justify-center">
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-[8px] font-semibold text-purple-300 border border-purple-500/30">
+                  Active
+                </span>
+              </div>
+            </div>
+
+            {/* Card 4: Graphic Designer (Orange) */}
+            <div className="absolute right-[16%] rotate-[8deg] translate-y-3 hover:translate-y-0 hover:rotate-4 transition-all duration-300 w-32 md:w-40 aspect-[2/3] rounded-2xl border border-orange-500/30 bg-gradient-to-b from-orange-950/80 to-black p-4 flex flex-col justify-between shadow-2xl z-[2]">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-orange-400">
+                Graphic Designer
+              </span>
+              <div className="flex-1 flex items-center justify-center">
+                <PenTool className="size-8 md:size-10 text-orange-500 opacity-80" />
+              </div>
+            </div>
+
+            {/* Card 5: Content Creator (Dark Blue) */}
+            <div className="absolute right-[2%] rotate-[15deg] translate-y-6 hover:translate-y-0 hover:rotate-12 transition-all duration-300 w-32 md:w-40 aspect-[2/3] rounded-2xl border border-blue-500/30 bg-gradient-to-b from-blue-950/80 to-black p-4 flex flex-col justify-between shadow-2xl">
+              <span className="text-[9px] font-bold tracking-wider uppercase text-blue-400">
+                Content Creator
+              </span>
+              <div className="flex-1 flex items-center justify-center">
+                <Video className="size-8 md:size-10 text-blue-500 opacity-80" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -107,6 +222,21 @@ function Hero() {
 }
 
 function PromptLibrary() {
+  const [promptsList, setPromptsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("prompts")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .then(({ data }) => {
+        if (data) setPromptsList(data);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <section className="section-light py-20">
       <div className="mx-auto max-w-7xl px-5">
@@ -125,34 +255,53 @@ function PromptLibrary() {
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {prompts.slice(0, 4).map((p, i) => (
-            <div
-              key={p.title}
-              className="rounded-2xl bg-white border border-neutral-200 overflow-hidden hover:shadow-lg transition"
-            >
-              <div
-                className="aspect-[4/5] bg-gradient-to-br"
-                style={{
-                  background: [
-                    "linear-gradient(135deg,#c084fc,#f472b6)",
-                    "linear-gradient(135deg,#60a5fa,#a78bfa)",
-                    "linear-gradient(135deg,#fb923c,#f472b6)",
-                    "linear-gradient(135deg,#34d399,#60a5fa)",
-                  ][i]!,
-                }}
-              />
-              <div className="p-4">
-                <span className="text-[10px] uppercase tracking-widest text-neutral-500">
-                  {p.category} · {p.tool}
-                </span>
-                <h3 className="mt-1 font-display font-semibold text-neutral-900 text-sm leading-snug">
-                  {p.title}
-                </h3>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="size-6 animate-spin text-purple-600" />
+          </div>
+        ) : promptsList.length === 0 ? (
+          <div className="text-center py-16 text-neutral-500 text-sm">
+            No prompts added yet. Go to Admin Panel to add some prompts!
+          </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {promptsList.map((p, i) => (
+              <Link
+                key={p.id}
+                to="/prompt-library"
+                className="rounded-2xl bg-white border border-neutral-200 overflow-hidden hover:shadow-lg transition flex flex-col justify-between"
+              >
+                <div className="h-52 relative bg-purple-950/20 overflow-hidden shrink-0">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: [
+                          "linear-gradient(135deg,#c084fc,#f472b6)",
+                          "linear-gradient(135deg,#60a5fa,#a78bfa)",
+                          "linear-gradient(135deg,#fb923c,#f472b6)",
+                          "linear-gradient(135deg,#34d399,#60a5fa)",
+                        ][i % 4]!,
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-neutral-400 block mb-1">
+                      {p.category}
+                    </span>
+                    <h3 className="font-display font-semibold text-neutral-900 text-sm leading-snug line-clamp-2">
+                      {p.title}
+                    </h3>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
