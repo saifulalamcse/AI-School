@@ -306,7 +306,7 @@ function LearningMaterials() {
 function Testimonials({ experts }: { experts: DynamicExpert[] }) {
   if (experts.length === 0) return null;
   return (
-    <section className="section-light py-20">
+    <section id="experts" className="section-light py-20">
       <div className="mx-auto max-w-7xl px-5">
         <h2 className="text-center font-display font-bold text-4xl md:text-5xl text-neutral-900">
           Experts Recommending <span className="gradient-text">My Course</span>

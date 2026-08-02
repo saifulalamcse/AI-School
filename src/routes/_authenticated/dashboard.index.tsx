@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Bookmark, Loader2, Settings, User } from "lucide-react";
+import { BookOpen, Bookmark, Camera, Loader2, Settings, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -233,12 +233,46 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
   const { user, profile } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
   const [bio, setBio] = useState(profile?.bio ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFullName(profile?.full_name ?? "");
     setBio(profile?.bio ?? "");
+    setAvatarUrl(profile?.avatar_url ?? "");
   }, [profile]);
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `avatar-${user.id}.${fileExt}`;
+      const { error: upErr } = await supabase.storage
+        .from("course-assets")
+        .upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("course-assets").getPublicUrl(fileName);
+      const publicUrl = urlData.publicUrl;
+      // Save immediately to profile
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        email: user.email,
+        avatar_url: publicUrl,
+      });
+      setAvatarUrl(publicUrl);
+      toast.success("Profile photo updated!");
+    } catch (err) {
+      toast.error("Upload failed. Please try again.");
+      console.error(err);
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -250,6 +284,7 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
       email: user.email,
       full_name: fullName.trim().slice(0, 100),
       bio: bio.trim().slice(0, 500),
+      avatar_url: avatarUrl || null,
     });
     setSaving(false);
     if (error) return toast.error("Could not save your profile.");
@@ -257,8 +292,64 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
     toast.success("Profile updated.");
   }
 
+  const initials = (profile?.full_name || user?.email || "?")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
-    <form onSubmit={save} className="surface-card p-6 max-w-xl space-y-4">
+    <form onSubmit={save} className="surface-card p-6 max-w-xl space-y-6">
+      {/* Avatar */}
+      <div className="flex items-center gap-5">
+        <div className="relative shrink-0">
+          <div className="size-20 rounded-full gradient-bg grid place-items-center text-white font-bold text-2xl overflow-hidden ring-2 ring-border">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={fullName || "avatar"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>{initials || "?"}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="absolute -bottom-1 -right-1 size-7 rounded-full bg-purple-500 hover:bg-purple-400 transition grid place-items-center text-white shadow-lg"
+            title="Change photo"
+          >
+            {uploadingAvatar ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Camera className="size-3.5" />
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarUpload}
+          />
+        </div>
+        <div>
+          <p className="font-semibold text-sm">{fullName || "Your Name"}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition font-medium"
+          >
+            {uploadingAvatar ? "Uploading..." : "Change profile photo"}
+          </button>
+        </div>
+      </div>
+
       <label className="block">
         <span className="text-xs uppercase tracking-widest text-muted-foreground">Full name</span>
         <input

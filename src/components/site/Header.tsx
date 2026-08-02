@@ -90,6 +90,12 @@ export function Header() {
               {n.label}
             </Link>
           ))}
+          <a
+            href="/#experts"
+            className="px-3 py-2 rounded-full hover:text-foreground hover:bg-white/5 transition-colors"
+          >
+            Experts
+          </a>
         </nav>
 
         <div className="flex items-center gap-2.5">
@@ -121,9 +127,17 @@ export function Header() {
                     <button
                       onClick={() => setMenuOpen((prev) => !prev)}
                       title={userName}
-                      className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden"
                     >
-                      {initials}
+                      {profile?.avatar_url ? (
+                        <img
+                          src={profile.avatar_url}
+                          alt={userName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        initials
+                      )}
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -251,6 +265,13 @@ export function Header() {
             >
               ✦ All Courses
             </Link>
+            <a
+              href="/#experts"
+              onClick={() => setOpen(false)}
+              className="px-3 py-3 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
+            >
+              Experts
+            </a>
             <div className="mt-3 flex flex-col gap-2">
               {user ? (
                 <>
