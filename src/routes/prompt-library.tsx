@@ -110,16 +110,16 @@ function PromptLibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white text-neutral-900">
       <Header />
-      <main className="pt-32 pb-24">
+      <main className="pt-32 pb-24 bg-[#faf9f6]">
         <section className="mx-auto max-w-7xl px-5">
           {/* Headline exactly matching reference */}
           <div className="text-center">
-            <div className="text-xs uppercase tracking-widest text-purple-400 font-semibold mb-2">
+            <div className="text-xs uppercase tracking-widest text-purple-600 font-bold mb-2">
               Copy. Paste. Get Results.
             </div>
-            <h1 className="font-display font-bold text-5xl md:text-7xl leading-none">
+            <h1 className="font-display font-bold text-5xl md:text-7xl leading-none text-neutral-900">
               <span className="gradient-text">Prompt</span> Library
             </h1>
           </div>
@@ -131,9 +131,9 @@ function PromptLibraryPage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search prompts by title, tags..."
-                className="w-full rounded-full pl-6 pr-12 py-3.5 bg-card border border-border focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/30 outline-none text-sm transition-all shadow-inner"
+                className="w-full rounded-full pl-6 pr-12 py-3.5 bg-white border border-neutral-200 focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/30 outline-none text-sm transition-all shadow-sm text-neutral-900 placeholder-neutral-400"
               />
-              <Search className="absolute right-5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Search className="absolute right-5 top-1/2 -translate-y-1/2 size-4 text-neutral-400" />
             </div>
           </div>
 
@@ -146,7 +146,7 @@ function PromptLibraryPage() {
                 className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-200 ${
                   cat === c
                     ? "gradient-bg text-white border-transparent shadow-md"
-                    : "border-border text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    : "border-neutral-200 text-neutral-600 hover:text-neutral-950 hover:bg-neutral-50 bg-white"
                 }`}
               >
                 {c === "All" ? "All" : c}
@@ -157,46 +157,46 @@ function PromptLibraryPage() {
           {/* Grid of Prompt Cards */}
           {loading ? (
             <div className="grid place-items-center py-32">
-              <Loader2 className="size-8 animate-spin text-purple-400" />
+              <Loader2 className="size-8 animate-spin text-purple-500" />
             </div>
           ) : (
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {filtered.map((p, idx) => (
+              {filtered.map((p) => (
                 <div
                   key={p.id}
                   onClick={() => setSelectedPrompt(p)}
-                  className="surface-card overflow-hidden group cursor-pointer hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
+                  className="bg-[#f2ebe1] border border-neutral-200/40 rounded-[24px] overflow-hidden group cursor-pointer hover:-translate-y-1.5 hover:shadow-md transition-all duration-300 flex flex-col justify-between p-4"
                 >
-                  <div className="p-5 flex-1 flex flex-col justify-between">
+                  <div className="flex-1 flex flex-col justify-between mb-4">
                     <div>
                       {/* Tags inline at the top of the card */}
-                      <div className="flex flex-wrap gap-1 mb-4">
+                      <div className="flex flex-wrap gap-1 mb-3">
                         {(p.tags || []).slice(0, 3).map((tag: string) => (
                           <span
                             key={tag}
-                            className="text-[9px] bg-white/5 border border-border text-muted-foreground px-2 py-0.5 rounded-full"
+                            className="text-[9px] bg-white/80 border border-neutral-200/30 text-neutral-600 px-2 py-0.5 rounded-full"
                           >
                             {tag}
                           </span>
                         ))}
                       </div>
-                      <h3 className="font-display font-semibold text-lg leading-snug group-hover:text-purple-400 transition-colors">
+                      <h3 className="font-display font-semibold text-base leading-snug text-neutral-900 group-hover:text-purple-600 transition-colors">
                         {p.title}
                       </h3>
                     </div>
                   </div>
 
                   {/* Collage style cover image */}
-                  <div className="h-60 relative bg-purple-950/20 overflow-hidden shrink-0">
+                  <div className="h-60 relative bg-white rounded-2xl overflow-hidden shrink-0 shadow-sm">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
                         alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-full gradient-bg opacity-30" />
+                      <div className="w-full h-full gradient-bg opacity-10" />
                     )}
                   </div>
                 </div>
@@ -205,7 +205,7 @@ function PromptLibraryPage() {
           )}
 
           {filtered.length === 0 && !loading && (
-            <div className="mt-20 text-center text-muted-foreground text-sm">
+            <div className="mt-20 text-center text-neutral-500 text-sm">
               No prompts match your search criteria.
             </div>
           )}
