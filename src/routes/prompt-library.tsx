@@ -11,13 +11,13 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/prompt-library")({
   head: () => ({
     meta: [
-      { title: "Prompt Library — My Course" },
+      { title: "Prompt Library — AI School" },
       {
         name: "description",
         content:
           "A curated, searchable library of battle-tested prompts for Midjourney, ChatGPT, Claude and more.",
       },
-      { property: "og:title", content: "Prompt Library — My Course" },
+      { property: "og:title", content: "Prompt Library — AI School" },
       {
         property: "og:description",
         content: "Copy-paste prompts that produce professional results in seconds.",

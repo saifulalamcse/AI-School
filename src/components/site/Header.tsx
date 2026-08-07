@@ -68,9 +68,9 @@ export function Header() {
     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-background/95 border-b border-border">
       <div className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <img src={logoImg} alt="My Course Logo" className="size-8 rounded-lg object-cover" />
+          <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
           <span className="font-display font-bold text-lg tracking-tight text-white">
-            My Course
+            AI School
           </span>
         </Link>
 

@@ -9,15 +9,15 @@ import { Footer } from "@/components/site/Footer";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Set a New Password — My Course" },
+      { title: "Set a New Password — AI School" },
       {
         name: "description",
-        content: "Choose a new password for your My Course account.",
+        content: "Choose a new password for your AI School account.",
       },
-      { property: "og:title", content: "Set a New Password — My Course" },
+      { property: "og:title", content: "Set a New Password — AI School" },
       {
         property: "og:description",
-        content: "Choose a new password for your My Course account.",
+        content: "Choose a new password for your AI School account.",
       },
       { property: "og:type", content: "website" },
       { name: "robots", content: "noindex" },

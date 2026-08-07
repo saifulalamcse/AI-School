@@ -142,7 +142,7 @@ export const workshops = [
   {
     title: "University Workshop",
     icon: "🎓",
-    desc: "Bring My Course to your campus with hands-on sessions for students.",
+    desc: "Bring AI School to your campus with hands-on sessions for students.",
   },
   {
     title: "Office Training",

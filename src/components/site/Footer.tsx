@@ -36,8 +36,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 py-16 grid gap-12 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <img src={logoImg} alt="My Course Logo" className="size-8 rounded-lg object-cover" />
-            <span className="font-display font-bold text-lg">My Course</span>
+            <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
+            <span className="font-display font-bold text-lg">AI School</span>
           </div>
           <p className="mt-4 text-sm text-muted-foreground max-w-xs">
             Learn AI for real productivity. Communities, courses and workflows for the next
@@ -64,7 +64,7 @@ export function Footer() {
       </div>
       <div className="border-t border-border">
         <div className="mx-auto max-w-7xl px-5 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div>© {new Date().getFullYear()} My Course. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} AI School. All rights reserved.</div>
           <div className="flex items-center gap-2 opacity-70">
             {["VISA", "MC", "AMEX", "bKash", "SSL"].map((p) => (
               <span key={p} className="px-2 py-1 rounded border border-border">

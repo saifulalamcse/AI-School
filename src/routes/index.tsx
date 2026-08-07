@@ -25,13 +25,13 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "My Course — Learn AI for Real Productivity" },
+      { title: "AI School — Learn AI for Real Productivity" },
       {
         name: "description",
         content:
           "Cohort-based AI communities, a curated prompt library and daily AI news. Learn the tools that make you 10x more productive.",
       },
-      { property: "og:title", content: "My Course — Learn AI for Real Productivity" },
+      { property: "og:title", content: "AI School — Learn AI for Real Productivity" },
       {
         property: "og:description",
         content:
@@ -458,7 +458,7 @@ function Testimonials({ experts }: { experts: DynamicExpert[] }) {
     <section id="experts" className="section-light py-20">
       <div className="mx-auto max-w-7xl px-5">
         <h2 className="text-center font-display font-bold text-4xl md:text-5xl text-neutral-900">
-          Experts Recommending <span className="gradient-text">My Course</span>
+          Experts Recommending <span className="gradient-text">AI School</span>
         </h2>
         <p className="mt-3 text-center text-neutral-600 max-w-xl mx-auto">
           A growing community of professionals, founders and creators trust our approach.

@@ -20,16 +20,16 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Login or Sign Up — My Course" },
+      { title: "Login or Sign Up — AI School" },
       {
         name: "description",
         content:
-          "Sign in to your My Course account to access your dashboard, courses and saved prompts.",
+          "Sign in to your AI School account to access your dashboard, courses and saved prompts.",
       },
-      { property: "og:title", content: "Login or Sign Up — My Course" },
+      { property: "og:title", content: "Login or Sign Up — AI School" },
       {
         property: "og:description",
-        content: "Access your My Course dashboard, courses and saved prompts.",
+        content: "Access your AI School dashboard, courses and saved prompts.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -101,7 +101,7 @@ function AuthPage() {
         navigate({ to: "/auth", search: { mode: "login" as const, redirect } });
         return;
       }
-      toast.success("Account created! Welcome to My Course.");
+      toast.success("Account created! Welcome to AI School.");
       navigate({ to: redirect ?? "/dashboard" });
     } else {
       const { error } = await supabase.auth.signInWithPassword({

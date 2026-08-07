@@ -8,13 +8,13 @@ import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — My Course" },
+      { title: "About — AI School" },
       {
         name: "description",
         content:
-          "My Course is a learning platform for creators and teams who want to work at the speed of AI.",
+          "AI School is a learning platform for creators and teams who want to work at the speed of AI.",
       },
-      { property: "og:title", content: "About — My Course" },
+      { property: "og:title", content: "About — AI School" },
       {
         property: "og:description",
         content: "Who we are and what we believe about AI education.",
@@ -42,7 +42,7 @@ function AboutPage() {
             AI for <span className="gradient-text">Everyone</span> Who Builds.
           </h1>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
-            My Course is a learning platform for creators, freelancers and teams. We turn
+            AI School is a learning platform for creators, freelancers and teams. We turn
             overwhelming AI toolchains into simple, repeatable workflows you can actually run.
           </p>
         </section>

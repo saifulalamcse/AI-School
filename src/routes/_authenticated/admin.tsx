@@ -59,7 +59,7 @@ type Section = {
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
-    meta: [{ title: "Admin Panel — My Course" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Admin Panel — AI School" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminDashboardPage,
 });
@@ -781,7 +781,7 @@ function AdminDashboardPage() {
                 <Shield className="size-3.5" /> Admin Control Panel
               </div>
               <h1 className="mt-2 font-display font-bold text-3xl md:text-4xl">
-                Manage <span className="gradient-text">My Course</span> Platform
+                Manage <span className="gradient-text">AI School</span> Platform
               </h1>
             </div>
             <div className="flex items-center gap-2">

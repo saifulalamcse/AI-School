@@ -71,11 +71,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "author", content: "My Course" },
+      { name: "author", content: "AI School" },
       { name: "twitter:card", content: "summary_large_image" },
-      { title: "My Course — Learn AI for Real Productivity" },
-      { property: "og:title", content: "My Course — Learn AI for Real Productivity" },
-      { name: "twitter:title", content: "My Course — Learn AI for Real Productivity" },
+      { title: "AI School — Learn AI for Real Productivity" },
+      { property: "og:title", content: "AI School — Learn AI for Real Productivity" },
+      { name: "twitter:title", content: "AI School — Learn AI for Real Productivity" },
       {
         name: "description",
         content:

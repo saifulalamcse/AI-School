@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard/courses/$slug")({
   head: () => ({
-    meta: [{ title: "Course Player — My Course" }],
+    meta: [{ title: "Course Player — AI School" }],
   }),
   component: CoursePlayerPage,
 });

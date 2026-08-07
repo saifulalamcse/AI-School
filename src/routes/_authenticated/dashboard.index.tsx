@@ -33,13 +33,13 @@ const tabs = [
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () => ({
     meta: [
-      { title: "Your Dashboard — My Course" },
+      { title: "Your Dashboard — AI School" },
       {
         name: "description",
         content:
-          "Your My Course dashboard: enrolled courses, saved prompts, profile and account settings.",
+          "Your AI School dashboard: enrolled courses, saved prompts, profile and account settings.",
       },
-      { property: "og:title", content: "Your Dashboard — My Course" },
+      { property: "og:title", content: "Your Dashboard — AI School" },
       {
         property: "og:description",
         content: "Enrolled courses, saved prompts and account settings.",

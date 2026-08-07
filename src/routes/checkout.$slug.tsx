@@ -25,9 +25,9 @@ import personaCreator from "@/assets/persona-creator.jpg";
 export const Route = createFileRoute("/checkout/$slug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Checkout — My Course` },
+      { title: `Checkout — AI School` },
       { name: "description", content: "Complete your course enrollment securely." },
-      { property: "og:title", content: "Checkout — My Course" },
+      { property: "og:title", content: "Checkout — AI School" },
     ],
   }),
   component: CheckoutPage,

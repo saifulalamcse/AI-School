@@ -7,13 +7,13 @@ import { news } from "@/lib/site-data";
 export const Route = createFileRoute("/ai-news")({
   head: () => ({
     meta: [
-      { title: "AI News — My Course" },
+      { title: "AI News — AI School" },
       {
         name: "description",
         content:
           "Daily AI news, decoded in 3 minutes. The stories moving AI and what they mean for creators and businesses.",
       },
-      { property: "og:title", content: "AI News — My Course" },
+      { property: "og:title", content: "AI News — AI School" },
       {
         property: "og:description",
         content: "The stories moving AI — decoded in 3 minutes.",

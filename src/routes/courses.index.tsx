@@ -23,16 +23,16 @@ import {
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "All Courses — My Course" },
+      { title: "All Courses — AI School" },
       {
         name: "description",
         content:
           "Explore all AI courses, cohort communities, and masterclasses. Learn AI tools for real productivity.",
       },
-      { property: "og:title", content: "All Courses — My Course" },
+      { property: "og:title", content: "All Courses — AI School" },
       {
         property: "og:description",
-        content: "Master Creative Design, Video Production, and AI Automations with My Course.",
+        content: "Master Creative Design, Video Production, and AI Automations with AI School.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -244,7 +244,7 @@ function AllCoursesPage() {
           <div className="text-center max-w-2xl mx-auto">
             <div className="eyebrow">✦ Learning Paths</div>
             <h2 className="mt-3 font-display font-bold text-4xl">
-              Skill Tracks Covered in <span className="gradient-text">My Course</span>
+              Skill Tracks Covered in <span className="gradient-text">AI School</span>
             </h2>
             <p className="mt-3 text-muted-foreground text-sm">
               Every course and workshop maps to real-world career paths.

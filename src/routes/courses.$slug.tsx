@@ -11,13 +11,13 @@ import laptopMockup from "@/assets/laptop-mockup.jpg";
 export const Route = createFileRoute("/courses/$slug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Course Details — My Course` },
+      { title: `Course Details — AI School` },
       {
         name: "description",
         content:
-          "Join My Course masterclasses. 25+ hours of content, new lessons every week, and 2 live sessions a month.",
+          "Join AI School masterclasses. 25+ hours of content, new lessons every week, and 2 live sessions a month.",
       },
-      { property: "og:title", content: "Course Details — My Course" },
+      { property: "og:title", content: "Course Details — AI School" },
       {
         property: "og:description",
         content: `Master AI design and productivity. (${params.slug})`,
@@ -303,7 +303,7 @@ function FeaturedCreatives() {
     <section className="section-light py-20">
       <div className="mx-auto max-w-6xl px-5">
         <h2 className="font-display font-bold text-4xl md:text-5xl text-neutral-900 text-center">
-          Featured Creatives by <span className="gradient-text">My Course</span>
+          Featured Creatives by <span className="gradient-text">AI School</span>
         </h2>
         <div className="mt-12 space-y-6">
           {cases.map((c, i) => (
