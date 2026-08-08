@@ -5,6 +5,7 @@ import { BookOpen, Bookmark, Camera, Loader2, Settings, User } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { fetchCourses, type DynamicCourse } from "@/lib/site-api";
 import { useAuth } from "@/lib/auth";
 
 type Enrollment = {
@@ -14,6 +15,7 @@ type Enrollment = {
   plan: string;
   status: string;
   created_at: string;
+  thumbnail_url?: string | null;
 };
 
 type SavedPrompt = {
@@ -62,7 +64,7 @@ function DashboardPage() {
     if (!user) return;
     let active = true;
     (async () => {
-      const [{ data: e }, { data: s }] = await Promise.all([
+      const [{ data: e }, { data: s }, allCourses] = await Promise.all([
         supabase
           .from("enrollments")
           .select("*")
@@ -73,9 +75,22 @@ function DashboardPage() {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
+        fetchCourses().catch(() => []),
       ]);
       if (!active) return;
-      setEnrollments((e as Enrollment[]) ?? []);
+
+      const courseMap = new Map((allCourses || []).map((c) => [c.slug, c]));
+
+      const enrichedEnrollments = ((e as Enrollment[]) ?? []).map((en) => {
+        const matched = courseMap.get(en.course_slug);
+        return {
+          ...en,
+          course_title: en.course_title || matched?.title || "AI Course",
+          thumbnail_url: matched?.thumbnail_url || null,
+        };
+      });
+
+      setEnrollments(enrichedEnrollments);
       setSaved((s as SavedPrompt[]) ?? []);
       setLoading(false);
     })();
@@ -170,25 +185,57 @@ function CoursesTab({ enrollments }: { enrollments: Enrollment[] }) {
     );
   }
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
       {enrollments.map((e) => (
-        <div key={e.id} className="surface-card p-6 hover:-translate-y-1 transition flex flex-col">
-          <div className="h-28 rounded-xl gradient-bg opacity-80" />
-          <h3 className="mt-5 font-display font-semibold text-lg">{e.course_title}</h3>
-          <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">
-            {e.plan} · {e.status}
-          </p>
-          <div className="mt-4 h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div className="h-full gradient-bg" style={{ width: "0%" }} />
+        <div
+          key={e.id}
+          className="surface-card p-0 overflow-hidden rounded-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between border border-border group shadow-lg"
+        >
+          <div>
+            <div className="h-44 w-full relative bg-neutral-900 overflow-hidden">
+              {e.thumbnail_url ? (
+                <img
+                  src={e.thumbnail_url}
+                  alt={e.course_title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full gradient-bg opacity-80 flex items-center justify-center">
+                  <BookOpen className="size-10 text-white/50" />
+                </div>
+              )}
+              <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-semibold text-purple-300 border border-white/10">
+                {e.plan || "Course"} · {e.status || "Active"}
+              </span>
+            </div>
+
+            <div className="p-6">
+              <h3 className="font-display font-bold text-lg leading-snug line-clamp-2">
+                {e.course_title}
+              </h3>
+              <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
+                {e.plan} · {e.status}
+              </p>
+
+              <div className="mt-4 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full gradient-bg" style={{ width: "15%" }} />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>Start learning</span>
+                <span className="font-mono text-[10px]">15% completed</span>
+              </div>
+            </div>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Start learning</p>
-          <Link
-            to="/dashboard/courses/$slug"
-            params={{ slug: e.course_slug }}
-            className="mt-5 inline-block text-sm gradient-text font-medium hover:underline"
-          >
-            Continue learning →
-          </Link>
+
+          <div className="p-6 pt-0">
+            <Link
+              to="/dashboard/courses/$slug"
+              params={{ slug: e.course_slug }}
+              className="btn-gradient w-full py-2.5 text-xs text-center block rounded-xl font-semibold"
+            >
+              Continue learning →
+            </Link>
+          </div>
         </div>
       ))}
     </div>
