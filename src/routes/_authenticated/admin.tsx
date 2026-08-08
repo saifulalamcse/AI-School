@@ -23,6 +23,7 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
+  Newspaper,
 } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -32,9 +33,13 @@ import {
   fetchCourses,
   fetchExperts,
   fetchPricingPlans,
+  fetchNewsArticles,
+  saveNewsArticle,
+  deleteNewsArticle,
   type DynamicCourse,
   type DynamicExpert,
   type DynamicPricingPlan,
+  type DynamicNewsArticle,
 } from "@/lib/site-api";
 
 // Types for Lesson System
@@ -68,9 +73,9 @@ function AdminDashboardPage() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"courses" | "experts" | "lessons" | "prompts">(
-    "courses",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "courses" | "experts" | "lessons" | "prompts" | "news"
+  >("courses");
   const [lessonsCourseSlug, setLessonsCourseSlug] = useState<string | null>(null);
 
   // Sections state
@@ -98,7 +103,23 @@ function AdminDashboardPage() {
   const [experts, setExperts] = useState<DynamicExpert[]>([]);
   const [plans, setPlans] = useState<DynamicPricingPlan[]>([]);
   const [prompts, setPrompts] = useState<any[]>([]);
+  const [newsArticles, setNewsArticles] = useState<DynamicNewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State for AI News
+  const [showNewsModal, setShowNewsModal] = useState(false);
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsCategory, setNewsCategory] = useState("AI Tools");
+  const [newsTags, setNewsTags] = useState("");
+  const [newsCoverUrl, setNewsCoverUrl] = useState("");
+  const [newsSummary, setNewsSummary] = useState("");
+  const [newsContent, setNewsContent] = useState("");
+  const [newsPublishedDate, setNewsPublishedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [newsIsFeatured, setNewsIsFeatured] = useState(false);
+  const [uploadingNewsImg, setUploadingNewsImg] = useState(false);
 
   // Modal State for Course
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -163,17 +184,67 @@ function AdminDashboardPage() {
 
   async function loadAllData() {
     setLoading(true);
-    const [cData, eData, pData, promptsRes] = await Promise.all([
-      fetchCourses(),
-      fetchExperts(),
-      fetchPricingPlans(),
-      supabase.from("prompts").select("*").order("created_at", { ascending: false }),
-    ]);
-    setCourses(cData);
-    setExperts(eData);
-    setPlans(pData);
-    setPrompts(promptsRes.data ?? []);
-    setLoading(false);
+    try {
+      const [cData, eData, pData, promptsRes, newsDataRes] = await Promise.all([
+        fetchCourses().catch(() => []),
+        fetchExperts().catch(() => []),
+        fetchPricingPlans().catch(() => []),
+        supabase
+          .from("prompts")
+          .select("*")
+          .neq("category", "AI News")
+          .order("created_at", { ascending: false })
+          .then((r) => r.data ?? [])
+          .catch(() => []),
+        supabase
+          .from("prompts")
+          .select("*")
+          .eq("category", "AI News")
+          .order("created_at", { ascending: false })
+          .then((r) => r.data ?? [])
+          .catch(() => []),
+      ]);
+
+      const mappedNews: DynamicNewsArticle[] = (newsDataRes || []).map((item) => {
+        let parsed: any = {};
+        try {
+          if (typeof item.prompt === "string" && item.prompt.startsWith("{")) {
+            parsed = JSON.parse(item.prompt);
+          }
+        } catch (e) {
+          console.error("Error parsing news prompt payload:", e);
+        }
+
+        return {
+          id: item.id,
+          title: item.title || "Untitled Article",
+          category: "AI News",
+          tag: item.tags?.[0] || "AI Tools",
+          tags: Array.isArray(item.tags) && item.tags.length > 0 ? item.tags : ["AI Tools"],
+          cover_url: item.image_url || parsed.cover_url || null,
+          image_url: item.image_url || parsed.cover_url || null,
+          summary: parsed.summary || item.title || "",
+          content: parsed.content || parsed.summary || item.title || "",
+          published_date:
+            parsed.published_date ||
+            (item.created_at
+              ? new Date(item.created_at).toISOString().split("T")[0]
+              : "2026-08-08"),
+          is_featured: !!parsed.is_featured,
+          created_at: item.created_at,
+        };
+      });
+
+      setCourses(cData || []);
+      setExperts(eData || []);
+      setPlans(pData || []);
+      setPrompts(promptsRes || []);
+      setNewsArticles(mappedNews);
+    } catch (err) {
+      console.error("loadAllData global err:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Load sections with nested lessons for a course slug
@@ -745,6 +816,97 @@ function AdminDashboardPage() {
     }
   }
 
+  // ==================== AI NEWS HANDLERS ====================
+  function resetNewsForm() {
+    setEditingNewsId(null);
+    setNewsTitle("");
+    setNewsCategory("AI Tools");
+    setNewsTags("AI Tools, ChatGPT, Tech News");
+    setNewsCoverUrl("");
+    setNewsSummary("");
+    setNewsContent("");
+    setNewsPublishedDate(new Date().toISOString().split("T")[0]);
+    setNewsIsFeatured(false);
+  }
+
+  function openEditNews(n: DynamicNewsArticle) {
+    setEditingNewsId(n.id);
+    setNewsTitle(n.title);
+    setNewsCategory(n.category || n.tag || "AI Tools");
+    setNewsTags(Array.isArray(n.tags) ? n.tags.join(", ") : n.tag || "AI Tools");
+    setNewsCoverUrl(n.cover_url || n.image_url || "");
+    setNewsSummary(n.summary || "");
+    setNewsContent(n.content || n.summary || "");
+    setNewsPublishedDate(n.published_date || new Date().toISOString().split("T")[0]);
+    setNewsIsFeatured(!!n.is_featured);
+    setShowNewsModal(true);
+  }
+
+  async function handleSaveNews(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const tagList = newsTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      await saveNewsArticle({
+        id: editingNewsId,
+        title: newsTitle,
+        category: newsCategory,
+        tags: tagList.length > 0 ? tagList : [newsCategory],
+        cover_url: newsCoverUrl || null,
+        summary: newsSummary,
+        content: newsContent || newsSummary,
+        published_date: newsPublishedDate,
+        is_featured: newsIsFeatured,
+      });
+
+      toast.success(
+        editingNewsId ? "Article updated successfully!" : "Article created successfully!",
+      );
+      setShowNewsModal(false);
+      resetNewsForm();
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save news article.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteNews(id: string) {
+    if (!confirm("Are you sure you want to delete this news article?")) return;
+    try {
+      await deleteNewsArticle(id);
+      toast.success("Article deleted.");
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete article.");
+    }
+  }
+
+  async function handleNewsCoverUpload(file: File) {
+    try {
+      setUploadingNewsImg(true);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `news-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: upErr } = await supabase.storage
+        .from("course-assets")
+        .upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("course-assets").getPublicUrl(fileName);
+      setNewsCoverUrl(urlData.publicUrl);
+      toast.success("Cover image uploaded!");
+    } catch (err) {
+      toast.error("Cover upload failed.");
+      console.error(err);
+    } finally {
+      setUploadingNewsImg(false);
+    }
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -808,8 +970,11 @@ function AdminDashboardPage() {
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-            <div className="surface-card p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+            <div
+              className="surface-card p-5 cursor-pointer hover:border-purple-500/40 transition"
+              onClick={() => setActiveTab("courses")}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Total Courses</span>
                 <BookOpen className="size-4 text-purple-400" />
@@ -819,13 +984,42 @@ function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="surface-card p-5">
+            <div
+              className="surface-card p-5 cursor-pointer hover:border-pink-500/40 transition"
+              onClick={() => setActiveTab("experts")}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Experts & Instructors</span>
                 <Users className="size-4 text-pink-400" />
               </div>
-              <div className="mt-2 font-display font-bold text-3xl gradient-text">
+              <div className="mt-2 font-display font-bold text-3xl text-pink-400">
                 {experts.length}
+              </div>
+            </div>
+
+            <div
+              className="surface-card p-5 cursor-pointer hover:border-amber-500/40 transition"
+              onClick={() => setActiveTab("prompts")}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Prompt Library</span>
+                <Sparkles className="size-4 text-amber-400" />
+              </div>
+              <div className="mt-2 font-display font-bold text-3xl text-amber-400">
+                {prompts.length}
+              </div>
+            </div>
+
+            <div
+              className="surface-card p-5 cursor-pointer hover:border-cyan-500/40 transition"
+              onClick={() => setActiveTab("news")}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">AI News Articles</span>
+                <Newspaper className="size-4 text-cyan-400" />
+              </div>
+              <div className="mt-2 font-display font-bold text-3xl text-cyan-400">
+                {newsArticles.length}
               </div>
             </div>
           </div>
@@ -873,6 +1067,16 @@ function AdminDashboardPage() {
               }`}
             >
               ✨ Prompt Library ({prompts.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("news")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === "news"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
+              🗞️ AI News ({newsArticles.length})
             </button>
           </div>
 
@@ -1282,6 +1486,105 @@ function AdminDashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* TAB 5: AI NEWS MANAGEMENT */}
+          {activeTab === "news" && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-display font-bold text-xl">AI News Articles</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Manage daily news, tools updates, and articles displayed on /ai-news.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    resetNewsForm();
+                    setShowNewsModal(true);
+                  }}
+                  className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                >
+                  <Plus className="size-3.5" /> Add News Article
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {newsArticles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="surface-card overflow-hidden flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="h-32 relative bg-neutral-900 overflow-hidden">
+                        {article.cover_url ? (
+                          <img
+                            src={article.cover_url}
+                            alt={article.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-950/60 to-black grid place-items-center">
+                            <Newspaper className="size-8 text-purple-400/50" />
+                          </div>
+                        )}
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[9px] font-semibold text-purple-300">
+                          {article.tag || article.category || "AI News"}
+                        </span>
+                        {article.published_date && (
+                          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[9px] font-mono text-neutral-300">
+                            {article.published_date}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <h4 className="font-display font-semibold text-base line-clamp-2 leading-snug">
+                          {article.title}
+                        </h4>
+                        {article.summary && (
+                          <p className="text-xs text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                            {article.summary}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-1 mt-3">
+                          {(article.tags || []).slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-[9px] bg-white/5 text-muted-foreground px-1.5 py-0.5 rounded"
+                            >
+                              #{tag.replace(/^#/, "")}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border-t border-border flex justify-end gap-2">
+                      <button
+                        onClick={() => openEditNews(article)}
+                        className="btn-outline-pill text-xs py-1.5 px-3"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNews(article.id)}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"
+                        title="Delete Article"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {newsArticles.length === 0 && (
+                <div className="text-center py-16 text-muted-foreground text-sm">
+                  No news articles created yet. Click "Add News Article" above.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2127,6 +2430,221 @@ function AdminDashboardPage() {
                 >
                   {saving && <Loader2 className="size-4 animate-spin" />}
                   {editingExpertId ? "Update Expert" : "Save Expert"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT AI NEWS ARTICLE */}
+      {showNewsModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4 overflow-y-auto">
+          <div className="bg-background border border-border w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative my-8">
+            <button
+              onClick={() => {
+                setShowNewsModal(false);
+                resetNewsForm();
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground"
+            >
+              <X className="size-5" />
+            </button>
+            <h3 className="font-display font-bold text-2xl mb-1">
+              {editingNewsId ? "Edit AI News Article" : "Add New AI News Article"}
+            </h3>
+            <p className="text-xs text-muted-foreground mb-5">
+              Publish news, breakdown stories, and updates to the /ai-news page.
+            </p>
+
+            <form
+              onSubmit={handleSaveNews}
+              className="space-y-4 text-sm max-h-[75vh] overflow-y-auto pr-1"
+            >
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Article Title (Bengali or English)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newsTitle}
+                  onChange={(e) => setNewsTitle(e.target.value)}
+                  placeholder="e.g. ChatGPT-কে একটি প্রশ্ন করতে কতটুকু পানি আর বিদ্যুৎ খরচ হয় জানেন কি?"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {/* Category & Tags */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Primary Category / Tag
+                  </label>
+                  <select
+                    value={newsCategory}
+                    onChange={(e) => setNewsCategory(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="AI Tools">AI Tools</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Science News">Science News</option>
+                    <option value="Career">Career</option>
+                    <option value="Productivity">Productivity</option>
+                    <option value="Design">Design</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Business">Business</option>
+                    <option value="Update">Update</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Tags (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={newsTags}
+                    onChange={(e) => setNewsTags(e.target.value)}
+                    placeholder="AI Tools, ChatGPT, Water Usage, OpenAI"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Cover Image */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Cover Image / Thumbnail
+                </label>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="btn-outline-pill text-xs inline-flex items-center gap-1.5 cursor-pointer py-2 px-3">
+                      {uploadingNewsImg ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="size-3.5 text-purple-400" />
+                      )}
+                      <span>{uploadingNewsImg ? "Uploading..." : "Upload File"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleNewsCoverUpload(file);
+                        }}
+                        disabled={uploadingNewsImg}
+                      />
+                    </label>
+                    <span className="text-xs text-muted-foreground">or Image URL:</span>
+                    <input
+                      type="text"
+                      value={newsCoverUrl}
+                      onChange={(e) => setNewsCoverUrl(e.target.value)}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="flex-1 min-w-[200px] px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  {newsCoverUrl && (
+                    <div className="relative rounded-2xl overflow-hidden border border-border aspect-video max-h-48 bg-black/40">
+                      <img
+                        src={newsCoverUrl}
+                        alt="News Cover Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewsCoverUrl("")}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-red-500 transition"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary / Subtitle */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Short Summary / Subtitle
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={newsSummary}
+                  onChange={(e) => setNewsSummary(e.target.value)}
+                  placeholder="ChatGPT-কে একটি Prompt দিলে কত লিটার পানি আর কত Watt-hour বিদ্যুৎ খরচ হয়?..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 resize-none text-xs"
+                />
+              </div>
+
+              {/* Full Article Body */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-muted-foreground">
+                    Full Article Content
+                  </label>
+                  <span className="text-[10px] text-purple-400">Tip: Use ## for Subheadings</span>
+                </div>
+                <textarea
+                  rows={6}
+                  required
+                  value={newsContent}
+                  onChange={(e) => setNewsContent(e.target.value)}
+                  placeholder={`## আমেরিকান ডেটা সেন্টারের পানি সংকট\nOpenAI এবং অন্যান্য টেক জায়ান্টদের AI মডেল ট্রেইনিং এবং কোটি কোটি প্রম্পট প্রসেস করতে...\n\n## অ্যালগরিদমের শক্তির প্রভাব\nপ্রতিটি সাধারণ ChatGPT প্রম্পটে সাধারণ Google Search-এর তুলনায়...`}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 font-mono text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* Published Date & Featured */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Published Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newsPublishedDate}
+                    onChange={(e) => setNewsPublishedDate(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border mt-auto">
+                  <input
+                    type="checkbox"
+                    id="is_featured"
+                    checked={newsIsFeatured}
+                    onChange={(e) => setNewsIsFeatured(e.target.checked)}
+                    className="size-4 rounded accent-purple-500"
+                  />
+                  <label htmlFor="is_featured" className="text-xs cursor-pointer font-semibold">
+                    Featured Article (highlighted badge)
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetNewsForm();
+                    setShowNewsModal(false);
+                  }}
+                  className="btn-outline-pill text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {saving && <Loader2 className="size-4 animate-spin" />}
+                  {editingNewsId ? "Update Article" : "Publish Article"}
                 </button>
               </div>
             </form>

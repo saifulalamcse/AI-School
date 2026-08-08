@@ -3,6 +3,7 @@ import {
   course as fallbackCourse,
   skillTracks,
   testimonials as fallbackExperts,
+  news as defaultNews,
 } from "@/lib/site-data";
 
 export type DynamicCourse = {
@@ -41,6 +42,21 @@ export type DynamicPricingPlan = {
   features: string[];
   is_popular: boolean;
   display_order: number;
+};
+
+export type DynamicNewsArticle = {
+  id: string;
+  title: string;
+  category: string;
+  tag?: string;
+  tags: string[];
+  cover_url: string | null;
+  image_url?: string | null;
+  summary: string;
+  content: string;
+  published_date: string;
+  is_featured?: boolean;
+  created_at?: string;
 };
 
 // Fetch Courses
@@ -303,4 +319,174 @@ export async function fetchPricingPlans(): Promise<DynamicPricingPlan[]> {
   } catch {
     return [];
   }
+}
+
+// Helper to parse article JSON from prompt payload
+function parseNewsPrompt(promptStr?: string | null) {
+  if (!promptStr || typeof promptStr !== "string") {
+    return { summary: "", content: "", published_date: "", is_featured: false, cover_url: null };
+  }
+  try {
+    const res = JSON.parse(promptStr);
+    if (res && typeof res === "object") {
+      return {
+        summary: res.summary || "",
+        content: res.content || res.summary || "",
+        cover_url: res.cover_url || null,
+        published_date: res.published_date || "",
+        is_featured: !!res.is_featured,
+      };
+    }
+    return {
+      summary: promptStr,
+      content: promptStr,
+      published_date: "",
+      is_featured: false,
+      cover_url: null,
+    };
+  } catch {
+    return {
+      summary: promptStr,
+      content: promptStr,
+      published_date: "",
+      is_featured: false,
+      cover_url: null,
+    };
+  }
+}
+
+// Fetch All AI News Articles
+export async function fetchNewsArticles(): Promise<DynamicNewsArticle[]> {
+  try {
+    const { data, error } = await supabase
+      .from("prompts")
+      .select("*")
+      .eq("category", "AI News")
+      .order("created_at", { ascending: false });
+
+    const dbArticles: DynamicNewsArticle[] = (!error && data ? data : []).map((item) => {
+      const parsed = parseNewsPrompt(item.prompt);
+      return {
+        id: item.id,
+        title: item.title,
+        category: "AI News",
+        tag: item.tags?.[0] || "AI Tools",
+        tags: Array.isArray(item.tags) && item.tags.length > 0 ? item.tags : ["AI Tools"],
+        cover_url: item.image_url || parsed.cover_url || null,
+        image_url: item.image_url || parsed.cover_url || null,
+        summary: parsed.summary || item.title,
+        content: parsed.content || parsed.summary || item.title,
+        published_date:
+          parsed.published_date ||
+          (item.created_at ? new Date(item.created_at).toISOString().split("T")[0] : "2026-08-08"),
+        is_featured: !!parsed.is_featured,
+        created_at: item.created_at,
+      };
+    });
+
+    // Deduplicate against defaults by ID and lowercase title so DB articles override defaults
+    const dbTitles = new Set(dbArticles.map((a) => a.title.toLowerCase().trim()));
+    const dbIds = new Set(dbArticles.map((a) => a.id));
+    const defaults = defaultNews.filter(
+      (n) => !dbIds.has(n.id) && !dbTitles.has(n.title.toLowerCase().trim()),
+    );
+
+    return [...dbArticles, ...defaults];
+  } catch (err) {
+    console.error("fetchNewsArticles error:", err);
+    return [...defaultNews];
+  }
+}
+
+// Fetch Single AI News Article
+export async function fetchNewsArticleById(id: string): Promise<DynamicNewsArticle | null> {
+  try {
+    // 1. Try fetching from Supabase prompts table
+    const { data, error } = await supabase.from("prompts").select("*").eq("id", id).maybeSingle();
+
+    if (!error && data) {
+      const parsed = parseNewsPrompt(data.prompt);
+      return {
+        id: data.id,
+        title: data.title,
+        category: "AI News",
+        tag: data.tags?.[0] || "AI Tools",
+        tags: Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : ["AI Tools"],
+        cover_url: data.image_url || parsed.cover_url || null,
+        image_url: data.image_url || parsed.cover_url || null,
+        summary: parsed.summary || data.title,
+        content: parsed.content || parsed.summary || data.title,
+        published_date:
+          parsed.published_date ||
+          (data.created_at ? new Date(data.created_at).toISOString().split("T")[0] : "2026-08-08"),
+        is_featured: !!parsed.is_featured,
+        created_at: data.created_at,
+      };
+    }
+
+    // 2. Check fallback mock articles by id or title match
+    const found = defaultNews.find(
+      (n) =>
+        n.id === id || n.title.toLowerCase().trim() === decodeURIComponent(id).toLowerCase().trim(),
+    );
+    return found || null;
+  } catch (err) {
+    console.error("fetchNewsArticleById error:", err);
+    const found = defaultNews.find((n) => n.id === id);
+    return found || null;
+  }
+}
+
+// Save or Update AI News Article
+export async function saveNewsArticle(article: {
+  id?: string | null;
+  title: string;
+  category?: string;
+  tags: string[];
+  cover_url: string | null;
+  summary: string;
+  content: string;
+  published_date: string;
+  is_featured?: boolean;
+}) {
+  const payload = JSON.stringify({
+    news_type: "article",
+    summary: article.summary,
+    content: article.content,
+    cover_url: article.cover_url,
+    published_date: article.published_date,
+    is_featured: !!article.is_featured,
+  });
+
+  const row = {
+    title: article.title,
+    category: "AI News",
+    tags: article.tags,
+    image_url: article.cover_url,
+    prompt: payload,
+  };
+
+  if (article.id && !article.id.startsWith("news-")) {
+    const { data, error } = await supabase
+      .from("prompts")
+      .update(row)
+      .eq("id", article.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase.from("prompts").insert(row).select().single();
+    if (error) throw error;
+    return data;
+  }
+}
+
+// Delete AI News Article
+export async function deleteNewsArticle(id: string) {
+  if (id.startsWith("news-")) {
+    return; // Fallback mock items
+  }
+  const { error } = await supabase.from("prompts").delete().eq("id", id);
+  if (error) throw error;
 }

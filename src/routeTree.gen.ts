@@ -18,6 +18,8 @@ import { Route as PromptLibraryRouteImport } from './routes/prompt-library'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AiNewsIndexRouteImport } from './routes/ai-news.index'
+import { Route as AiNewsIdRouteImport } from './routes/ai-news.$id'
 import { Route as CheckoutSlugRouteImport } from './routes/checkout.$slug'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
@@ -70,6 +72,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AiNewsIndexRoute = AiNewsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AiNewsRoute,
+} as any)
+const AiNewsIdRoute = AiNewsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AiNewsRoute,
+} as any)
 const CheckoutSlugRoute = CheckoutSlugRouteImport.update({
   id: '/checkout/$slug',
   path: '/checkout/$slug',
@@ -111,15 +123,17 @@ const AuthenticatedDashboardCoursesSlugRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ai-news': typeof AiNewsRoute
+  '/ai-news': typeof AiNewsRouteWithChildren
   '/auth': typeof AuthRoute
   '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/ai-news/$id': typeof AiNewsIdRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/prompt-library/$id': typeof PromptLibraryIdRoute
+  '/ai-news/': typeof AiNewsIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/prompt-library/': typeof PromptLibraryIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -128,13 +142,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ai-news': typeof AiNewsRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/ai-news/$id': typeof AiNewsIdRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/prompt-library/$id': typeof PromptLibraryIdRoute
+  '/ai-news': typeof AiNewsIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/prompt-library': typeof PromptLibraryIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -145,15 +160,17 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/ai-news': typeof AiNewsRoute
+  '/ai-news': typeof AiNewsRouteWithChildren
   '/auth': typeof AuthRoute
   '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/ai-news/$id': typeof AiNewsIdRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/prompt-library/$id': typeof PromptLibraryIdRoute
+  '/ai-news/': typeof AiNewsIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/prompt-library/': typeof PromptLibraryIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -170,9 +187,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/dashboard'
+    | '/ai-news/$id'
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/prompt-library/$id'
+    | '/ai-news/'
     | '/courses/'
     | '/prompt-library/'
     | '/dashboard/'
@@ -181,13 +200,14 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/ai-news'
     | '/auth'
     | '/reset-password'
     | '/admin'
+    | '/ai-news/$id'
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/prompt-library/$id'
+    | '/ai-news'
     | '/courses'
     | '/prompt-library'
     | '/dashboard'
@@ -203,9 +223,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/ai-news/$id'
     | '/checkout/$slug'
     | '/courses/$slug'
     | '/prompt-library/$id'
+    | '/ai-news/'
     | '/courses/'
     | '/prompt-library/'
     | '/_authenticated/dashboard/'
@@ -216,7 +238,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AiNewsRoute: typeof AiNewsRoute
+  AiNewsRoute: typeof AiNewsRouteWithChildren
   AuthRoute: typeof AuthRoute
   PromptLibraryRoute: typeof PromptLibraryRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -289,6 +311,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/ai-news/': {
+      id: '/ai-news/'
+      path: '/'
+      fullPath: '/ai-news/'
+      preLoaderRoute: typeof AiNewsIndexRouteImport
+      parentRoute: typeof AiNewsRoute
+    }
+    '/ai-news/$id': {
+      id: '/ai-news/$id'
+      path: '/$id'
+      fullPath: '/ai-news/$id'
+      preLoaderRoute: typeof AiNewsIdRouteImport
+      parentRoute: typeof AiNewsRoute
     }
     '/checkout/$slug': {
       id: '/checkout/$slug'
@@ -372,6 +408,19 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AiNewsRouteChildren {
+  AiNewsIdRoute: typeof AiNewsIdRoute
+  AiNewsIndexRoute: typeof AiNewsIndexRoute
+}
+
+const AiNewsRouteChildren: AiNewsRouteChildren = {
+  AiNewsIdRoute: AiNewsIdRoute,
+  AiNewsIndexRoute: AiNewsIndexRoute,
+}
+
+const AiNewsRouteWithChildren =
+  AiNewsRoute._addFileChildren(AiNewsRouteChildren)
+
 interface PromptLibraryRouteChildren {
   PromptLibraryIdRoute: typeof PromptLibraryIdRoute
   PromptLibraryIndexRoute: typeof PromptLibraryIndexRoute
@@ -390,7 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AiNewsRoute: AiNewsRoute,
+  AiNewsRoute: AiNewsRouteWithChildren,
   AuthRoute: AuthRoute,
   PromptLibraryRoute: PromptLibraryRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,

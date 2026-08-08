@@ -37,24 +37,34 @@ function PromptLibraryPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("prompts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) {
-        setPrompts(data);
+      try {
+        const { data, error } = await supabase
+          .from("prompts")
+          .select("*")
+          .neq("category", "AI News")
+          .order("created_at", { ascending: false });
+        if (!error && data) {
+          setPrompts(data.filter((p) => p.category !== "AI News"));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, []);
 
   const filtered = prompts.filter((p) => {
+    if (p.category === "AI News") return false;
     const matchesCat = cat === "All" || p.category === cat;
+    const query = q.toLowerCase().trim();
+    const tagList = Array.isArray(p.tags) ? p.tags : [];
+    const promptStr = typeof p.prompt === "string" ? p.prompt : "";
     const matchesSearch =
-      q === "" ||
-      p.title.toLowerCase().includes(q.toLowerCase()) ||
-      p.tags.some((t: string) => t.toLowerCase().includes(q.toLowerCase())) ||
-      p.prompt.toLowerCase().includes(q.toLowerCase());
+      query === "" ||
+      (p.title && p.title.toLowerCase().includes(query)) ||
+      tagList.some((t: string) => typeof t === "string" && t.toLowerCase().includes(query)) ||
+      promptStr.toLowerCase().includes(query);
     return matchesCat && matchesSearch;
   });
 

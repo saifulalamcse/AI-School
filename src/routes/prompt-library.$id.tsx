@@ -41,12 +41,24 @@ function PromptDetailPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase.from("prompts").select("*").eq("id", id).single();
-      if (!error && data) setPrompt(data);
-      else toast.error("Prompt not found.");
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.from("prompts").select("*").eq("id", id).single();
+        if (!error && data) {
+          if (data.category === "AI News") {
+            navigate({ to: "/ai-news/$id", params: { id: data.id } });
+            return;
+          }
+          setPrompt(data);
+        } else {
+          toast.error("Prompt not found.");
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [id]);
+  }, [id, navigate]);
 
   async function copyText(text: string, blockId: string) {
     try {
