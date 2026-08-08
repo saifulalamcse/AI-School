@@ -35,7 +35,7 @@ export function NewsletterForm({ compact = false }: { compact?: boolean }) {
         onChange={(e) => setEmail(e.target.value)}
         maxLength={255}
         placeholder="you@example.com"
-        className="flex-1 min-w-0 rounded-full px-5 py-3 bg-background border border-border focus:border-primary outline-none text-sm transition-colors"
+        className="flex-1 min-w-0 rounded-full px-5 py-3 bg-neutral-900 border border-neutral-800 text-white placeholder:text-neutral-500 focus:border-purple-500 outline-none text-sm transition-colors"
       />
       <button className="btn-gradient disabled:opacity-60" type="submit" disabled={loading}>
         {loading ? "…" : "Subscribe"}

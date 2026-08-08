@@ -21,6 +21,8 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as CheckoutSlugRouteImport } from './routes/checkout.$slug'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
+import { Route as PromptLibraryIndexRouteImport } from './routes/prompt-library.index'
+import { Route as PromptLibraryIdRouteImport } from './routes/prompt-library.$id'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardCoursesSlugRouteImport } from './routes/_authenticated/dashboard.courses.$slug'
 
@@ -83,6 +85,16 @@ const CoursesSlugRoute = CoursesSlugRouteImport.update({
   path: '/courses/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromptLibraryIndexRoute = PromptLibraryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PromptLibraryRoute,
+} as any)
+const PromptLibraryIdRoute = PromptLibraryIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PromptLibraryRoute,
+} as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/',
@@ -101,13 +113,15 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/ai-news': typeof AiNewsRoute
   '/auth': typeof AuthRoute
-  '/prompt-library': typeof PromptLibraryRoute
+  '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/prompt-library/$id': typeof PromptLibraryIdRoute
   '/courses/': typeof CoursesIndexRoute
+  '/prompt-library/': typeof PromptLibraryIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
@@ -116,12 +130,13 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/ai-news': typeof AiNewsRoute
   '/auth': typeof AuthRoute
-  '/prompt-library': typeof PromptLibraryRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/prompt-library/$id': typeof PromptLibraryIdRoute
   '/courses': typeof CoursesIndexRoute
+  '/prompt-library': typeof PromptLibraryIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
@@ -132,13 +147,15 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/ai-news': typeof AiNewsRoute
   '/auth': typeof AuthRoute
-  '/prompt-library': typeof PromptLibraryRoute
+  '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/checkout/$slug': typeof CheckoutSlugRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/prompt-library/$id': typeof PromptLibraryIdRoute
   '/courses/': typeof CoursesIndexRoute
+  '/prompt-library/': typeof PromptLibraryIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/dashboard/courses/$slug': typeof AuthenticatedDashboardCoursesSlugRoute
 }
@@ -155,7 +172,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/checkout/$slug'
     | '/courses/$slug'
+    | '/prompt-library/$id'
     | '/courses/'
+    | '/prompt-library/'
     | '/dashboard/'
     | '/dashboard/courses/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -164,12 +183,13 @@ export interface FileRouteTypes {
     | '/about'
     | '/ai-news'
     | '/auth'
-    | '/prompt-library'
     | '/reset-password'
     | '/admin'
     | '/checkout/$slug'
     | '/courses/$slug'
+    | '/prompt-library/$id'
     | '/courses'
+    | '/prompt-library'
     | '/dashboard'
     | '/dashboard/courses/$slug'
   id:
@@ -185,7 +205,9 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/checkout/$slug'
     | '/courses/$slug'
+    | '/prompt-library/$id'
     | '/courses/'
+    | '/prompt-library/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/dashboard/courses/$slug'
   fileRoutesById: FileRoutesById
@@ -196,7 +218,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AiNewsRoute: typeof AiNewsRoute
   AuthRoute: typeof AuthRoute
-  PromptLibraryRoute: typeof PromptLibraryRoute
+  PromptLibraryRoute: typeof PromptLibraryRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   CheckoutSlugRoute: typeof CheckoutSlugRoute
   CoursesSlugRoute: typeof CoursesSlugRoute
@@ -289,6 +311,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prompt-library/': {
+      id: '/prompt-library/'
+      path: '/'
+      fullPath: '/prompt-library/'
+      preLoaderRoute: typeof PromptLibraryIndexRouteImport
+      parentRoute: typeof PromptLibraryRoute
+    }
+    '/prompt-library/$id': {
+      id: '/prompt-library/$id'
+      path: '/$id'
+      fullPath: '/prompt-library/$id'
+      preLoaderRoute: typeof PromptLibraryIdRouteImport
+      parentRoute: typeof PromptLibraryRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/'
@@ -336,13 +372,27 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface PromptLibraryRouteChildren {
+  PromptLibraryIdRoute: typeof PromptLibraryIdRoute
+  PromptLibraryIndexRoute: typeof PromptLibraryIndexRoute
+}
+
+const PromptLibraryRouteChildren: PromptLibraryRouteChildren = {
+  PromptLibraryIdRoute: PromptLibraryIdRoute,
+  PromptLibraryIndexRoute: PromptLibraryIndexRoute,
+}
+
+const PromptLibraryRouteWithChildren = PromptLibraryRoute._addFileChildren(
+  PromptLibraryRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AiNewsRoute: AiNewsRoute,
   AuthRoute: AuthRoute,
-  PromptLibraryRoute: PromptLibraryRoute,
+  PromptLibraryRoute: PromptLibraryRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   CheckoutSlugRoute: CheckoutSlugRoute,
   CoursesSlugRoute: CoursesSlugRoute,

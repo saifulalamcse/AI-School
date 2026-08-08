@@ -154,6 +154,7 @@ function AdminDashboardPage() {
   const [pBlocks, setPBlocks] = useState<
     { id: string; tool: string; promptText: string; imageUrl: string }[]
   >([]);
+  const [pRequiredTools, setPRequiredTools] = useState("");
   const [uploadingPromptImg, setUploadingPromptImg] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -621,6 +622,10 @@ function AdminDashboardPage() {
     // Prompt content JSON payload
     const promptPayload = {
       intro: pIntro.trim(),
+      required_tools: pRequiredTools
+        .split("\n")
+        .map((t) => t.trim())
+        .filter(Boolean),
       blocks: pBlocks.map((b) => ({
         tool: b.tool.trim() || "Midjourney",
         promptText: b.promptText.trim(),
@@ -661,6 +666,7 @@ function AdminDashboardPage() {
     setPTags("");
     setPImageUrl("");
     setPIntro("");
+    setPRequiredTools("");
     setPBlocks([]);
   }
 
@@ -674,6 +680,9 @@ function AdminDashboardPage() {
     try {
       const parsed = JSON.parse(pr.prompt);
       setPIntro(parsed.intro || "");
+      setPRequiredTools(
+        Array.isArray(parsed.required_tools) ? parsed.required_tools.join("\n") : "",
+      );
       setPBlocks(
         (parsed.blocks || []).map((b: any, index: number) => ({
           id: String(index + 1),
@@ -684,6 +693,7 @@ function AdminDashboardPage() {
       );
     } catch {
       setPIntro(pr.prompt || "");
+      setPRequiredTools("");
       setPBlocks([]);
     }
 
@@ -1836,6 +1846,20 @@ function AdminDashboardPage() {
                   onChange={(e) => setPIntro(e.target.value)}
                   placeholder="Introduce the prompt workflow..."
                   className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Required Tools &amp; Files
+                  <span className="ml-1 font-normal text-muted-foreground/60">(one per line)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={pRequiredTools}
+                  onChange={(e) => setPRequiredTools(e.target.value)}
+                  placeholder={"ChatGPT Image 2.0\nAdobe Photoshop\nMidjourney Subscription"}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground resize-none font-mono text-xs"
                 />
               </div>
 
