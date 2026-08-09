@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async (userId: string) => {
-    const [{ data: prof }, { data: adminData }] = await Promise.all([
+    const [{ data: profData }, { data: adminData }] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, full_name, email, avatar_url, bio")
@@ -50,6 +50,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("role", "admin")
         .maybeSingle(),
     ]);
+
+    let prof = profData;
+
+    if (!prof) {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (currentUser && currentUser.id === userId) {
+        const metadata = currentUser.user_metadata || {};
+        const newProf = {
+          id: userId,
+          full_name:
+            metadata.full_name || metadata.name || currentUser.email?.split("@")[0] || "User",
+          email: currentUser.email || null,
+          avatar_url: metadata.avatar_url || metadata.picture || null,
+          bio: null,
+        };
+        await supabase.from("profiles").upsert(newProf);
+        prof = newProf;
+      }
+    }
 
     setProfile((prof as Profile) ?? null);
     setIsAdmin(!!adminData);
