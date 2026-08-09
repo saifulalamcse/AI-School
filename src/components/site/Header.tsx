@@ -86,12 +86,6 @@ export function Header() {
               {n.label}
             </Link>
           ))}
-          <a
-            href="/#experts"
-            className="px-3 py-2 rounded-full hover:text-foreground hover:bg-white/5 transition-colors"
-          >
-            Experts
-          </a>
         </nav>
 
         <div className="flex items-center gap-8">
@@ -247,13 +241,6 @@ export function Header() {
             >
               ✦ All Courses
             </Link>
-            <a
-              href="/#experts"
-              onClick={() => setOpen(false)}
-              className="px-3 py-3 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
-            >
-              Experts
-            </a>
             <div className="mt-3 flex flex-col gap-2">
               {user ? (
                 <>
