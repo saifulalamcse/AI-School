@@ -416,21 +416,9 @@ function NewsPreview({ newsList }: { newsList: DynamicNewsArticle[] }) {
   );
 }
 
-function LearningMaterials() {
-  const cards = [
-    {
-      title: "Master Creative Design with AI",
-      pills: ["25+ Tools", "24 Hr Live Classes", "Lifetime Access"],
-      badge: null,
-      href: "/courses/creative-ai-community",
-    },
-    {
-      title: "Use Claude Better Than 99% of People & Businesses",
-      pills: ["Prompt Systems", "Team Workflows", "Coming Soon"],
-      badge: "Coming Soon",
-      href: "/courses/creative-ai-community",
-    },
-  ];
+function LearningMaterials({ courses }: { courses: DynamicCourse[] }) {
+  if (courses.length === 0) return null;
+
   return (
     <section className="py-24">
       <div className="mx-auto max-w-6xl px-5">
@@ -441,39 +429,73 @@ function LearningMaterials() {
           </h2>
         </div>
         <div className="mt-14 space-y-6">
-          {cards.map((c) => (
-            <Link
-              key={c.title}
-              to={c.href}
-              className="surface-card grid md:grid-cols-[1.2fr_1fr] items-center gap-6 overflow-hidden group"
-            >
-              <div className="p-8 md:p-10">
-                {c.badge && (
-                  <span className="eyebrow gradient-text border-primary/30">{c.badge}</span>
-                )}
-                <h3 className="mt-3 font-display font-bold text-2xl md:text-3xl">{c.title}</h3>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {c.pills.map((p) => (
-                    <span
-                      key={p}
-                      className="text-xs px-3 py-1.5 rounded-full border border-border bg-white/5"
-                    >
-                      {p}
+          {courses.map((c) => {
+            const pills =
+              Array.isArray(c.tools) && c.tools.length > 0
+                ? c.tools.slice(0, 4)
+                : Array.isArray(c.topics) && c.topics.length > 0
+                  ? c.topics.slice(0, 4)
+                  : ["25+ Tools", "Live Classes", "Lifetime Access"];
+
+            return (
+              <Link
+                key={c.id || c.slug}
+                to="/courses/$slug"
+                params={{ slug: c.slug }}
+                className="surface-card grid md:grid-cols-[1.2fr_1fr] items-center gap-6 overflow-hidden group hover:border-purple-500/50 transition-all duration-300"
+              >
+                <div className="p-8 md:p-10">
+                  <div className="flex items-center gap-2">
+                    <span className="eyebrow gradient-text border-primary/30">
+                      {c.status === "active" ? "Featured Course" : c.status}
                     </span>
-                  ))}
+                    <span className="text-xs font-semibold text-neutral-400">
+                      ৳{c.price} / {c.period}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-display font-bold text-2xl md:text-3xl text-white group-hover:text-purple-200 transition-colors">
+                    {c.title}
+                  </h3>
+                  {c.subtitle && (
+                    <p className="mt-2 text-sm text-neutral-400 line-clamp-2">{c.subtitle}</p>
+                  )}
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {pills.map((p) => (
+                      <span
+                        key={p}
+                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-white/5 text-neutral-300 font-medium"
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-6 gradient-text font-semibold flex items-center gap-1.5">
+                    Explore Course →
+                  </div>
                 </div>
-                <div className="mt-6 gradient-text font-semibold">Explore →</div>
-              </div>
-              <img
-                src={laptopMockup}
-                alt=""
-                loading="lazy"
-                width={1200}
-                height={800}
-                className="w-full h-full object-cover md:rounded-l-none rounded-b-2xl md:rounded-r-2xl"
-              />
-            </Link>
-          ))}
+
+                <div className="h-64 md:h-full min-h-[260px] w-full bg-neutral-950 overflow-hidden relative">
+                  {c.thumbnail_url ? (
+                    <img
+                      src={c.thumbnail_url}
+                      alt={c.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover md:rounded-l-none rounded-b-2xl md:rounded-r-2xl group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <img
+                      src={laptopMockup}
+                      alt={c.title}
+                      loading="lazy"
+                      width={1200}
+                      height={800}
+                      className="w-full h-full object-cover md:rounded-l-none rounded-b-2xl md:rounded-r-2xl group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
