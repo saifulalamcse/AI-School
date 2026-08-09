@@ -22,8 +22,7 @@ export function Footer() {
             </Link>
 
             <p className="text-sm text-neutral-400 max-w-sm leading-relaxed">
-              AI-powered Learning. From prompts to production — learn the tools shaping the
-              future.
+              AI-powered Learning. From prompts to production — learn the tools shaping the future.
             </p>
 
             {/* Social Icons */}
@@ -132,16 +131,20 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Payment Methods Banner Matching Screenshot */}
-        <div className="mt-14 pt-8 border-t border-white/10">
-          <div className="w-full bg-white rounded-lg px-4 py-3 flex flex-wrap items-center justify-center md:justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-2 border-r border-neutral-300 pr-3 mr-1">
-              <span className="text-xs font-bold text-emerald-800 tracking-tight whitespace-nowrap">
-                Pay with
-              </span>
-            </div>
+        {/* Bottom Credits (Left) & Payment Methods Banner (Right) */}
+        <div className="mt-14 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Bottom Credits (Left) */}
+          <div className="text-xs text-neutral-500">
+            © {new Date().getFullYear()} AI School. All rights reserved.
+          </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] font-bold">
+          {/* Payment Methods Banner (Right) */}
+          <div className="bg-white rounded-lg px-3.5 py-2 inline-flex items-center gap-3 shadow-sm border border-neutral-200 w-fit">
+            <span className="text-xs font-bold text-emerald-800 tracking-tight whitespace-nowrap border-r border-neutral-300 pr-3">
+              Pay with
+            </span>
+
+            <div className="flex items-center gap-2.5 text-[11px] font-bold">
               {/* VISA */}
               <span className="text-blue-900 tracking-tighter text-sm font-extrabold italic px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
                 VISA
@@ -153,12 +156,6 @@ export function Footer() {
                 <span className="size-3.5 rounded-full bg-amber-500 opacity-90 -ml-2 inline-block" />
               </span>
 
-
-
-
-
-
-
               {/* Rocket */}
               <span className="text-purple-700 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50 flex items-center gap-0.5">
                 🚀 Rocket
@@ -169,26 +166,12 @@ export function Footer() {
                 bKash
               </span>
 
-              {/* Nagad / Tap */}
+              {/* Nagad */}
               <span className="text-orange-600 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
                 Nagad
               </span>
-
-
-
-
-
-
-
-
             </div>
           </div>
-        </div>
-
-        {/* Bottom Credits */}
-        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
-          <div>© {new Date().getFullYear()} AI School. All rights reserved.</div>
-
         </div>
       </div>
     </footer>
