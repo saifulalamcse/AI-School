@@ -67,7 +67,14 @@ export function Header() {
   return (
     <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-background/95 border-b border-border">
       <div className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 hover:opacity-90 transition cursor-pointer"
+          onClick={() => {
+            setOpen(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
           <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
           <span className="font-display font-bold text-lg tracking-tight text-white">
             AI School
@@ -79,6 +86,11 @@ export function Header() {
             <Link
               key={n.to}
               to={n.to}
+              onClick={() => {
+                if (n.to === "/") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
               className="px-3 py-2 rounded-full hover:text-foreground hover:bg-white/5 transition-colors"
               activeProps={{ className: "text-foreground bg-white/5" }}
               activeOptions={{ exact: n.to === "/" }}

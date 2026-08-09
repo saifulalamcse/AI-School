@@ -22,8 +22,10 @@ import { skillTracks, workshops } from "@/lib/site-data";
 import {
   fetchExperts,
   fetchNewsArticles,
+  fetchCourses,
   type DynamicExpert,
   type DynamicNewsArticle,
+  type DynamicCourse,
 } from "@/lib/site-api";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -51,6 +53,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [experts, setExperts] = useState<DynamicExpert[]>([]);
   const [newsList, setNewsList] = useState<DynamicNewsArticle[]>([]);
+  const [coursesList, setCoursesList] = useState<DynamicCourse[]>([]);
 
   useEffect(() => {
     fetchExperts()
@@ -58,6 +61,9 @@ function Home() {
       .catch(() => {});
     fetchNewsArticles()
       .then(setNewsList)
+      .catch(() => {});
+    fetchCourses()
+      .then(setCoursesList)
       .catch(() => {});
   }, []);
 
@@ -69,7 +75,7 @@ function Home() {
         <PromptLibrary />
         <SlowWork />
         <NewsPreview newsList={newsList} />
-        <LearningMaterials />
+        <LearningMaterials courses={coursesList} />
         <Testimonials experts={experts} />
         <Workshops />
         <Newsletter />

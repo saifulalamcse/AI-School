@@ -35,10 +35,14 @@ export function Footer() {
     <footer className="bg-[#050508] text-white border-t border-white/10 mt-24">
       <div className="mx-auto max-w-7xl px-5 py-16 grid gap-12 md:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <Link
+            to="/"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2.5 hover:opacity-90 transition cursor-pointer w-fit"
+          >
             <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
             <span className="font-display font-bold text-lg text-white">AI School</span>
-          </div>
+          </Link>
           <p className="mt-4 text-sm text-neutral-400 max-w-xs leading-relaxed">
             Learn AI for real productivity. Communities, courses and workflows for the next
             generation of creators.
