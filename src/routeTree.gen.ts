@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AiNewsRouteImport } from './routes/ai-news'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PromptLibraryRouteImport } from './routes/prompt-library'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -50,6 +51,11 @@ const AiNewsRoute = AiNewsRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PromptLibraryRoute = PromptLibraryRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/ai-news': typeof AiNewsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/ai-news/$id': typeof AiNewsIdRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/ai-news': typeof AiNewsRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contact': typeof ContactRoute
   '/prompt-library': typeof PromptLibraryRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/ai-news'
     | '/auth'
+    | '/contact'
     | '/prompt-library'
     | '/reset-password'
     | '/admin'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/contact'
     | '/reset-password'
     | '/admin'
     | '/ai-news/$id'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/ai-news'
     | '/auth'
+    | '/contact'
     | '/prompt-library'
     | '/reset-password'
     | '/_authenticated/admin'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AiNewsRoute: typeof AiNewsRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ContactRoute: typeof ContactRoute
   PromptLibraryRoute: typeof PromptLibraryRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   CheckoutSlugRoute: typeof CheckoutSlugRoute
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prompt-library': {
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AiNewsRoute: AiNewsRouteWithChildren,
   AuthRoute: AuthRoute,
+  ContactRoute: ContactRoute,
   PromptLibraryRoute: PromptLibraryRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   CheckoutSlugRoute: CheckoutSlugRoute,
