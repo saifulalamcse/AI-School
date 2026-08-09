@@ -19,7 +19,12 @@ import {
   Loader2,
 } from "lucide-react";
 import { skillTracks, workshops } from "@/lib/site-data";
-import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
+import {
+  fetchExperts,
+  fetchNewsArticles,
+  type DynamicExpert,
+  type DynamicNewsArticle,
+} from "@/lib/site-api";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -45,9 +50,15 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [experts, setExperts] = useState<DynamicExpert[]>([]);
+  const [newsList, setNewsList] = useState<DynamicNewsArticle[]>([]);
 
   useEffect(() => {
-    fetchExperts().then(setExperts);
+    fetchExperts()
+      .then(setExperts)
+      .catch(() => {});
+    fetchNewsArticles()
+      .then(setNewsList)
+      .catch(() => {});
   }, []);
 
   return (
@@ -57,7 +68,7 @@ function Home() {
         <Hero />
         <PromptLibrary />
         <SlowWork />
-        <NewsPreview />
+        <NewsPreview newsList={newsList} />
         <LearningMaterials />
         <Testimonials experts={experts} />
         <Workshops />
@@ -229,10 +240,11 @@ function PromptLibrary() {
     supabase
       .from("prompts")
       .select("*")
+      .neq("category", "AI News")
       .order("created_at", { ascending: false })
       .limit(4)
       .then(({ data }) => {
-        if (data) setPromptsList(data);
+        if (data) setPromptsList(data.filter((p) => p.category !== "AI News"));
         setLoading(false);
       });
   }, []);
@@ -342,13 +354,16 @@ function SlowWork() {
   );
 }
 
-function NewsPreview() {
+function NewsPreview({ newsList }: { newsList: DynamicNewsArticle[] }) {
+  if (newsList.length === 0) return null;
   return (
     <section className="section-light py-20">
       <div className="mx-auto max-w-7xl px-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-neutral-500">Every Weekday</div>
+            <div className="text-xs uppercase tracking-widest text-neutral-500 font-semibold">
+              Every Weekday
+            </div>
             <h2 className="mt-2 font-display font-bold text-4xl md:text-5xl text-neutral-900">
               Daily AI News
             </h2>
@@ -362,25 +377,32 @@ function NewsPreview() {
         </div>
 
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {news.slice(0, 4).map((n, i) => (
-            <div key={n.title} className="relative rounded-2xl overflow-hidden aspect-[4/5] group">
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: [
-                    "linear-gradient(180deg,#7c3aed,#0a0a0f)",
-                    "linear-gradient(180deg,#ec4899,#0a0a0f)",
-                    "linear-gradient(180deg,#f97316,#0a0a0f)",
-                    "linear-gradient(180deg,#3b82f6,#0a0a0f)",
-                  ][i]!,
-                }}
-              />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition" />
-              <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                <span className="text-[10px] uppercase tracking-widest opacity-80">{n.tag}</span>
-                <h3 className="mt-1 font-display font-bold text-lg leading-snug">{n.title}</h3>
+          {newsList.slice(0, 4).map((n) => (
+            <Link
+              key={n.id}
+              to="/ai-news/$id"
+              params={{ id: n.id }}
+              className="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-neutral-950 border border-neutral-200/50 shadow-md flex flex-col justify-end p-5 hover:-translate-y-1.5 transition-all duration-300 block"
+            >
+              {n.cover_url ? (
+                <img
+                  src={n.cover_url}
+                  alt={n.title}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-75 group-hover:opacity-90"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-neutral-900 to-purple-950/70" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+              <div className="relative z-10 space-y-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 inline-block">
+                  {n.tag || n.category || "AI News"}
+                </span>
+                <h3 className="font-display font-bold text-sm md:text-base text-white leading-snug drop-shadow-md group-hover:text-purple-200 transition-colors line-clamp-3">
+                  {n.title}
+                </h3>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
