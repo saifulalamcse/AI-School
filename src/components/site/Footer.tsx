@@ -22,7 +22,7 @@ export function Footer() {
             </Link>
 
             <p className="text-sm text-neutral-400 max-w-sm leading-relaxed">
-              Master AI-powered creativity. From prompts to production — learn the tools shaping the
+              AI-powered Learning. From prompts to production — learn the tools shaping the
               future.
             </p>
 
@@ -153,20 +153,11 @@ export function Footer() {
                 <span className="size-3.5 rounded-full bg-amber-500 opacity-90 -ml-2 inline-block" />
               </span>
 
-              {/* AMEX */}
-              <span className="text-blue-600 font-extrabold tracking-widest text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                AMEX
-              </span>
 
-              {/* DBBL Nexus */}
-              <span className="text-emerald-700 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50 flex items-center gap-1">
-                <span className="size-2 rounded-full bg-emerald-600" /> Nexus
-              </span>
 
-              {/* Cellfin */}
-              <span className="text-teal-700 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                Cellfin
-              </span>
+
+
+
 
               {/* Rocket */}
               <span className="text-purple-700 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50 flex items-center gap-0.5">
@@ -183,25 +174,13 @@ export function Footer() {
                 Nagad
               </span>
 
-              {/* Meghna Pay */}
-              <span className="text-sky-700 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                MeghnaPay
-              </span>
 
-              {/* Upay */}
-              <span className="text-amber-600 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                Upay
-              </span>
 
-              {/* OK Wallet */}
-              <span className="text-yellow-600 font-bold text-[10px] px-1.5 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                OK Wallet
-              </span>
 
-              {/* EPS */}
-              <span className="text-red-600 font-extrabold text-[10px] px-2 py-0.5 border border-neutral-200 rounded bg-neutral-50">
-                EPS
-              </span>
+
+
+
+
             </div>
           </div>
         </div>
@@ -209,7 +188,7 @@ export function Footer() {
         {/* Bottom Credits */}
         <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-neutral-500">
           <div>© {new Date().getFullYear()} AI School. All rights reserved.</div>
-          <div className="text-neutral-400 text-xs font-medium">A Team Qreative Initiative</div>
+
         </div>
       </div>
     </footer>
