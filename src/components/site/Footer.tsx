@@ -95,11 +95,7 @@ export function Footer() {
                   About Us
                 </Link>
               </li>
-              <li>
-                <Link to="/contact" className="hover:text-white transition-colors">
-                  Support
-                </Link>
-              </li>
+
               <li>
                 <Link to="/contact" className="hover:text-white transition-colors">
                   Contact
