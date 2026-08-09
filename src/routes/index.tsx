@@ -18,7 +18,7 @@ import {
   Video,
   Loader2,
 } from "lucide-react";
-import { skillTracks, news, workshops } from "@/lib/site-data";
+import { skillTracks, workshops } from "@/lib/site-data";
 import { fetchExperts, type DynamicExpert } from "@/lib/site-api";
 import { supabase } from "@/integrations/supabase/client";
 

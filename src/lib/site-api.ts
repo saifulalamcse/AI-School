@@ -3,7 +3,6 @@ import {
   course as fallbackCourse,
   skillTracks,
   testimonials as fallbackExperts,
-  news as defaultNews,
 } from "@/lib/site-data";
 
 export type DynamicCourse = {
@@ -384,24 +383,17 @@ export async function fetchNewsArticles(): Promise<DynamicNewsArticle[]> {
       };
     });
 
-    // Deduplicate against defaults by ID and lowercase title so DB articles override defaults
-    const dbTitles = new Set(dbArticles.map((a) => a.title.toLowerCase().trim()));
-    const dbIds = new Set(dbArticles.map((a) => a.id));
-    const defaults = defaultNews.filter(
-      (n) => !dbIds.has(n.id) && !dbTitles.has(n.title.toLowerCase().trim()),
-    );
-
-    return [...dbArticles, ...defaults];
+    return dbArticles;
   } catch (err) {
     console.error("fetchNewsArticles error:", err);
-    return [...defaultNews];
+    return [];
   }
 }
 
 // Fetch Single AI News Article
 export async function fetchNewsArticleById(id: string): Promise<DynamicNewsArticle | null> {
   try {
-    // 1. Try fetching from Supabase prompts table
+    // Try fetching from Supabase prompts table
     const { data, error } = await supabase.from("prompts").select("*").eq("id", id).maybeSingle();
 
     if (!error && data) {
@@ -424,16 +416,10 @@ export async function fetchNewsArticleById(id: string): Promise<DynamicNewsArtic
       };
     }
 
-    // 2. Check fallback mock articles by id or title match
-    const found = defaultNews.find(
-      (n) =>
-        n.id === id || n.title.toLowerCase().trim() === decodeURIComponent(id).toLowerCase().trim(),
-    );
-    return found || null;
+    return null;
   } catch (err) {
     console.error("fetchNewsArticleById error:", err);
-    const found = defaultNews.find((n) => n.id === id);
-    return found || null;
+    return null;
   }
 }
 
