@@ -185,3 +185,164 @@
   text-transform: uppercase;
   color: var(--color-muted-foreground);
 }
+
+/* ==================== ADMIN PORTAL OFF-WHITE & SOLID BLACK TEXT THEME ==================== */
+.admin-portal {
+  --background: #f8f9fb !important;
+  --foreground: #000000 !important;
+  --card: #ffffff !important;
+  --card-foreground: #000000 !important;
+  --popover: #ffffff !important;
+  --popover-foreground: #000000 !important;
+  --primary-foreground: #ffffff !important;
+  --muted: #f1f5f9 !important;
+  --muted-foreground: #1e293b !important;
+  --secondary: #f1f5f9 !important;
+  --secondary-foreground: #000000 !important;
+  --border: #cbd5e1 !important;
+  --input: #cbd5e1 !important;
+  --color-foreground: #000000 !important;
+  --color-muted-foreground: #1e293b !important;
+
+  background-color: #f8f9fb !important;
+  color: #000000 !important;
+  min-height: 100vh;
+}
+
+.admin-portal,
+.admin-portal h1,
+.admin-portal h2,
+.admin-portal h3,
+.admin-portal h4,
+.admin-portal h5,
+.admin-portal h6,
+.admin-portal p,
+.admin-portal span,
+.admin-portal div,
+.admin-portal label,
+.admin-portal td,
+.admin-portal th {
+  color: #000000;
+}
+
+.admin-portal .text-foreground {
+  color: #000000 !important;
+}
+
+.admin-portal .text-muted-foreground {
+  color: #1e293b !important;
+}
+
+.admin-portal header {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-portal .surface-card {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.admin-portal input,
+.admin-portal select,
+.admin-portal textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #000000 !important;
+}
+
+.admin-portal input:focus,
+.admin-portal select:focus,
+.admin-portal textarea:focus {
+  background-color: #ffffff !important;
+  border-color: #9333ea !important;
+}
+
+.admin-portal input::placeholder,
+.admin-portal textarea::placeholder {
+  color: #64748b !important;
+}
+
+.admin-portal table thead {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.admin-portal table thead th {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+.admin-portal table tbody tr {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.admin-portal table tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.admin-portal table td {
+  color: #000000 !important;
+}
+
+.admin-portal .btn-outline-pill {
+  border: 1px solid #cbd5e1 !important;
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.admin-portal .btn-outline-pill:hover {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Gradient buttons & badges text should remain white or colorful */
+.admin-portal .btn-gradient,
+.admin-portal .btn-gradient *,
+.admin-portal .bg-purple-600,
+.admin-portal .bg-purple-600 * {
+  color: #ffffff !important;
+}
+
+.admin-portal .gradient-text {
+  background: var(--gradient-brand) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.admin-portal .text-purple-400,
+.admin-portal .text-purple-600 {
+  color: #7c3aed !important;
+}
+
+.admin-portal .text-pink-400,
+.admin-portal .text-pink-500 {
+  color: #db2777 !important;
+}
+
+.admin-portal .text-amber-400,
+.admin-portal .text-amber-500 {
+  color: #d97706 !important;
+}
+
+.admin-portal .text-cyan-400,
+.admin-portal .text-cyan-600 {
+  color: #0284c7 !important;
+}
+
+.admin-portal .text-emerald-400,
+.admin-portal .text-emerald-500 {
+  color: #059669 !important;
+}
+
+.admin-portal .text-red-400,
+.admin-portal .text-red-600 {
+  color: #dc2626 !important;
+}

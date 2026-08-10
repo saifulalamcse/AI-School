@@ -24,11 +24,33 @@ import {
   Eye,
   EyeOff,
   Newspaper,
+  TrendingUp,
+  ShoppingBag,
+  Search,
+  UserPlus,
+  Filter,
+  Receipt,
+  Mail,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ArrowRight,
+  LayoutDashboard,
+  LogOut,
+  Globe,
 } from "lucide-react";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import logoImg from "@/assets/logo.jpg";
 import {
   fetchCourses,
   fetchExperts,
@@ -41,6 +63,28 @@ import {
   type DynamicPricingPlan,
   type DynamicNewsArticle,
 } from "@/lib/site-api";
+
+export type DynamicOrder = {
+  id: string;
+  user_id: string;
+  course_slug: string;
+  course_title: string;
+  plan: string;
+  status: string;
+  created_at: string;
+  user_name?: string;
+  user_email?: string;
+};
+
+export type DynamicCustomer = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at?: string;
+  enrollments_count?: number;
+};
 
 // Types for Lesson System
 type Lesson = {
@@ -70,13 +114,57 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminDashboardPage() {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, profile, isAdmin, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const initials =
+    (profile?.full_name || user?.email || "?")
+      .split(" ")
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
+
+  const userName = profile?.full_name || user?.email?.split("@")[0] || "Admin";
+
+  async function handleAdminSignOut() {
+    await signOut();
+    navigate({ to: "/", replace: true });
+  }
+
   const [activeTab, setActiveTab] = useState<
-    "courses" | "experts" | "lessons" | "prompts" | "news"
-  >("courses");
+    "dashboard" | "orders" | "customers" | "courses" | "experts" | "lessons" | "prompts" | "news"
+  >("dashboard");
   const [lessonsCourseSlug, setLessonsCourseSlug] = useState<string | null>(null);
+
+  // Orders and Customers State
+  const [orders, setOrders] = useState<DynamicOrder[]>([]);
+  const [customers, setCustomers] = useState<DynamicCustomer[]>([]);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  // Modal State for Order
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [orderUserId, setOrderUserId] = useState("");
+  const [orderUserName, setOrderUserName] = useState("");
+  const [orderUserEmail, setOrderUserEmail] = useState("");
+  const [orderCourseSlug, setOrderCourseSlug] = useState("");
+  const [orderCourseTitle, setOrderCourseTitle] = useState("");
+  const [orderPlan, setOrderPlan] = useState("৳1,900 / month");
+  const [orderStatus, setOrderStatus] = useState("active");
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  // Modal State for Customer
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
+  const [custFullName, setCustFullName] = useState("");
+  const [custEmail, setCustEmail] = useState("");
+  const [custBio, setCustBio] = useState("");
+  const [custAvatarUrl, setCustAvatarUrl] = useState("");
+  const [uploadingCustAvatar, setUploadingCustAvatar] = useState(false);
+  const [savingCustomer, setSavingCustomer] = useState(false);
 
   // Sections state
   const [sections, setSections] = useState<Section[]>([]);
@@ -185,25 +273,38 @@ function AdminDashboardPage() {
   async function loadAllData() {
     setLoading(true);
     try {
-      const [cData, eData, pData, promptsRes, newsDataRes] = await Promise.all([
-        fetchCourses().catch(() => []),
-        fetchExperts().catch(() => []),
-        fetchPricingPlans().catch(() => []),
-        supabase
-          .from("prompts")
-          .select("*")
-          .neq("category", "AI News")
-          .order("created_at", { ascending: false })
-          .then((r) => r.data ?? [])
-          .catch(() => []),
-        supabase
-          .from("prompts")
-          .select("*")
-          .eq("category", "AI News")
-          .order("created_at", { ascending: false })
-          .then((r) => r.data ?? [])
-          .catch(() => []),
-      ]);
+      const [cData, eData, pData, promptsRes, newsDataRes, enrollmentsRes, profilesRes] =
+        await Promise.all([
+          fetchCourses().catch(() => []),
+          fetchExperts().catch(() => []),
+          fetchPricingPlans().catch(() => []),
+          supabase
+            .from("prompts")
+            .select("*")
+            .neq("category", "AI News")
+            .order("created_at", { ascending: false })
+            .then((r) => r.data ?? [])
+            .catch(() => []),
+          supabase
+            .from("prompts")
+            .select("*")
+            .eq("category", "AI News")
+            .order("created_at", { ascending: false })
+            .then((r) => r.data ?? [])
+            .catch(() => []),
+          supabase
+            .from("enrollments")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .then((r) => r.data ?? [])
+            .catch(() => []),
+          supabase
+            .from("profiles")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .then((r) => r.data ?? [])
+            .catch(() => []),
+        ]);
 
       const mappedNews: DynamicNewsArticle[] = (newsDataRes || []).map((item) => {
         let parsed: any = {};
@@ -235,11 +336,30 @@ function AdminDashboardPage() {
         };
       });
 
+      const mappedOrders: DynamicOrder[] = (enrollmentsRes || []).map((enr: any) => {
+        const profile = (profilesRes || []).find((p: any) => p.id === enr.user_id);
+        return {
+          ...enr,
+          user_name: profile?.full_name || "Student",
+          user_email: profile?.email || "student@example.com",
+        };
+      });
+
+      const mappedCustomers: DynamicCustomer[] = (profilesRes || []).map((prof: any) => {
+        const orderCount = (enrollmentsRes || []).filter((e: any) => e.user_id === prof.id).length;
+        return {
+          ...prof,
+          enrollments_count: orderCount,
+        };
+      });
+
       setCourses(cData || []);
       setExperts(eData || []);
       setPlans(pData || []);
       setPrompts(promptsRes || []);
       setNewsArticles(mappedNews);
+      setOrders(mappedOrders);
+      setCustomers(mappedCustomers);
     } catch (err) {
       console.error("loadAllData global err:", err);
     } finally {
@@ -907,6 +1027,240 @@ function AdminDashboardPage() {
     }
   }
 
+  // ==================== ORDERS HANDLERS ====================
+  function resetOrderForm() {
+    setEditingOrderId(null);
+    setOrderUserId("");
+    setOrderUserName("");
+    setOrderUserEmail("");
+    const firstCourse = courses[0];
+    setOrderCourseSlug(firstCourse?.slug || "");
+    setOrderCourseTitle(firstCourse?.title || "Creative AI Community");
+    setOrderPlan(firstCourse ? `৳${firstCourse.price} / ${firstCourse.period}` : "৳1,900 / month");
+    setOrderStatus("active");
+  }
+
+  function openCreateOrder() {
+    resetOrderForm();
+    setShowOrderModal(true);
+  }
+
+  function openEditOrder(ord: DynamicOrder) {
+    setEditingOrderId(ord.id);
+    setOrderUserId(ord.user_id);
+    setOrderUserName(ord.user_name || "");
+    setOrderUserEmail(ord.user_email || "");
+    setOrderCourseSlug(ord.course_slug);
+    setOrderCourseTitle(ord.course_title);
+    setOrderPlan(ord.plan);
+    setOrderStatus(ord.status);
+    setShowOrderModal(true);
+  }
+
+  async function handleSaveOrder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!orderCourseSlug.trim() || !orderCourseTitle.trim()) {
+      return toast.error("Course selection is required.");
+    }
+    setSavingOrder(true);
+    try {
+      let finalUserId = orderUserId.trim();
+      if (!finalUserId && orderUserEmail.trim()) {
+        const found = customers.find(
+          (c) => c.email?.toLowerCase() === orderUserEmail.trim().toLowerCase(),
+        );
+        if (found) {
+          finalUserId = found.id;
+        } else {
+          const { data: newProf, error: profErr } = await supabase
+            .from("profiles")
+            .insert({
+              full_name: orderUserName.trim() || "Student",
+              email: orderUserEmail.trim().toLowerCase(),
+            })
+            .select()
+            .single();
+          if (!profErr && newProf) {
+            finalUserId = newProf.id;
+          } else {
+            finalUserId = user?.id || "manual-user";
+          }
+        }
+      } else if (!finalUserId) {
+        finalUserId = user?.id || "manual-user";
+      }
+
+      const payload = {
+        user_id: finalUserId,
+        course_slug: orderCourseSlug,
+        course_title: orderCourseTitle,
+        plan: orderPlan,
+        status: orderStatus,
+      };
+
+      if (editingOrderId) {
+        const { error } = await supabase
+          .from("enrollments")
+          .update(payload)
+          .eq("id", editingOrderId);
+        if (error) throw error;
+        toast.success("Order updated successfully!");
+      } else {
+        const { error } = await supabase.from("enrollments").insert(payload);
+        if (error) throw error;
+        toast.success("New order created successfully!");
+      }
+      setShowOrderModal(false);
+      resetOrderForm();
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save order.");
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
+  async function handleDeleteOrder(id: string) {
+    if (!confirm("Are you sure you want to delete this order?")) return;
+    try {
+      const { error } = await supabase.from("enrollments").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Order deleted.");
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete order.");
+    }
+  }
+
+  // ==================== CUSTOMERS HANDLERS ====================
+  function resetCustomerForm() {
+    setEditingCustomerId(null);
+    setCustFullName("");
+    setCustEmail("");
+    setCustBio("");
+    setCustAvatarUrl("");
+  }
+
+  function openCreateCustomer() {
+    resetCustomerForm();
+    setShowCustomerModal(true);
+  }
+
+  function openEditCustomer(cust: DynamicCustomer) {
+    setEditingCustomerId(cust.id);
+    setCustFullName(cust.full_name || "");
+    setCustEmail(cust.email || "");
+    setCustBio(cust.bio || "");
+    setCustAvatarUrl(cust.avatar_url || "");
+    setShowCustomerModal(true);
+  }
+
+  async function handleSaveCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!custFullName.trim()) return toast.error("Full name is required.");
+    if (!custEmail.trim() || !custEmail.includes("@"))
+      return toast.error("Valid email is required.");
+    setSavingCustomer(true);
+    try {
+      const payload = {
+        full_name: custFullName.trim(),
+        email: custEmail.trim().toLowerCase(),
+        bio: custBio.trim() || null,
+        avatar_url: custAvatarUrl.trim() || null,
+      };
+
+      if (editingCustomerId) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(payload)
+          .eq("id", editingCustomerId);
+        if (error) throw error;
+        toast.success("Customer profile updated!");
+      } else {
+        const { error } = await supabase.from("profiles").insert(payload);
+        if (error) throw error;
+        toast.success("New customer profile created!");
+      }
+      setShowCustomerModal(false);
+      resetCustomerForm();
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save customer.");
+    } finally {
+      setSavingCustomer(false);
+    }
+  }
+
+  async function handleDeleteCustomer(id: string) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this customer? This will also remove their enrollments.",
+      )
+    )
+      return;
+    try {
+      await Promise.all([
+        supabase.from("enrollments").delete().eq("user_id", id),
+        supabase.from("profiles").delete().eq("id", id),
+      ]);
+      toast.success("Customer deleted.");
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete customer.");
+    }
+  }
+
+  async function handleCustomerAvatarUpload(file: File) {
+    try {
+      setUploadingCustAvatar(true);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `avatar-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: upErr } = await supabase.storage
+        .from("course-assets")
+        .upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("course-assets").getPublicUrl(fileName);
+      setCustAvatarUrl(urlData.publicUrl);
+      toast.success("Avatar image uploaded!");
+    } catch (err) {
+      toast.error("Avatar upload failed.");
+      console.error(err);
+    } finally {
+      setUploadingCustAvatar(false);
+    }
+  }
+
+  // Metrics Calculations
+  const totalRevenue = orders.reduce((sum, ord) => {
+    if (ord.status === "cancelled") return sum;
+    const match = (ord.plan || "").replace(/,/g, "").match(/\d+/);
+    const amount = match ? parseInt(match[0], 10) : 1900;
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
+  const filteredOrders = orders.filter((ord) => {
+    const q = orderSearch.toLowerCase().trim();
+    const matchQuery =
+      !q ||
+      ord.course_title.toLowerCase().includes(q) ||
+      (ord.user_name && ord.user_name.toLowerCase().includes(q)) ||
+      (ord.user_email && ord.user_email.toLowerCase().includes(q)) ||
+      ord.id.toLowerCase().includes(q);
+    const matchStatus =
+      orderStatusFilter === "all" || ord.status.toLowerCase() === orderStatusFilter.toLowerCase();
+    return matchQuery && matchStatus;
+  });
+
+  const filteredCustomers = customers.filter((cust) => {
+    const q = customerSearch.toLowerCase().trim();
+    return (
+      !q ||
+      (cust.full_name && cust.full_name.toLowerCase().includes(q)) ||
+      (cust.email && cust.email.toLowerCase().includes(q)) ||
+      (cust.bio && cust.bio.toLowerCase().includes(q))
+    );
+  });
+
   if (authLoading) {
     return (
       <div className="min-h-screen grid place-items-center bg-background">
@@ -918,41 +1272,131 @@ function AdminDashboardPage() {
   // Access Control Guard
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex flex-col justify-between">
-        <Header />
-        <main className="pt-32 pb-24 max-w-2xl mx-auto px-5 text-center">
+      <div className="min-h-screen bg-background flex flex-col justify-center items-center px-5 text-center">
+        <div className="max-w-md mx-auto surface-card p-8 rounded-3xl border border-border shadow-2xl">
           <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-400 grid place-items-center mx-auto text-2xl border border-amber-500/20">
             <Shield />
           </div>
-          <h1 className="mt-5 font-display font-bold text-3xl">Admin Access Required</h1>
-          <p className="mt-3 text-muted-foreground text-sm leading-relaxed">
+          <h1 className="mt-5 font-display font-bold text-2xl">Admin Access Required</h1>
+          <p className="mt-3 text-muted-foreground text-xs leading-relaxed">
             Your account (<span className="text-foreground font-semibold">{user?.email}</span>) does
-            not have Admin permissions. Please contact the administrator or run the Admin role
-            assignment SQL script in Supabase.
+            not have Admin permissions.
           </p>
-          <div className="mt-8 flex justify-center gap-3">
-            <Link to="/dashboard" className="btn-gradient text-sm">
-              Back to Student Dashboard
+          <div className="mt-6 flex justify-center gap-3">
+            <Link to="/dashboard" className="btn-gradient text-xs">
+              Back to Dashboard
             </Link>
           </div>
-        </main>
-        <Footer />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-28 pb-24">
+    <div className="min-h-screen admin-portal bg-[#f8f9fb] text-slate-900">
+      {/* Dedicated Admin Header (Only Profile Option on right, off-white clean navbar) */}
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/95 border-b border-slate-200 shadow-sm">
+        <div className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 hover:opacity-90 transition cursor-pointer"
+            >
+              <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
+              <span className="font-display font-bold text-lg tracking-tight text-slate-900">
+                AI School
+              </span>
+            </Link>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+              <Shield className="size-3" /> Admin Portal
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 transition px-3 py-1.5 rounded-xl hover:bg-slate-100 border border-slate-200 bg-white shadow-xs"
+            >
+              <Globe className="size-3.5" /> View Main Site
+            </Link>
+
+            {/* Profile Menu Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  title={userName}
+                  className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden border border-slate-200 shadow-sm"
+                >
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={6}
+                className="w-56 bg-white border border-slate-200 shadow-xl p-2 rounded-2xl animate-none z-50 text-slate-900"
+              >
+                <DropdownMenuLabel className="font-normal px-2 py-2">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-semibold leading-none text-slate-900 truncate">
+                      {userName}
+                    </p>
+                    <p className="text-xs leading-none text-slate-500 truncate font-mono">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl cursor-pointer py-2 px-2 hover:bg-slate-100 text-slate-700 font-medium"
+                >
+                  <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
+                    <LayoutDashboard className="size-4 text-purple-600" />
+                    <span>Student Dashboard</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  asChild
+                  className="rounded-xl cursor-pointer py-2 px-2 hover:bg-slate-100 text-slate-700 font-medium"
+                >
+                  <Link to="/" className="flex items-center gap-2 text-sm w-full">
+                    <Globe className="size-4 text-cyan-600" />
+                    <span>View Public Site</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                <DropdownMenuItem
+                  onClick={handleAdminSignOut}
+                  className="rounded-xl cursor-pointer py-2 px-2 hover:bg-red-50 text-red-600 font-medium"
+                >
+                  <div className="flex items-center gap-2 text-sm w-full">
+                    <LogOut className="size-4" />
+                    <span>Sign Out</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      <main className="pt-24 pb-20">
         <div className="mx-auto max-w-7xl px-5">
           {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-slate-200">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                 <Shield className="size-3.5" /> Admin Control Panel
               </div>
-              <h1 className="mt-2 font-display font-bold text-3xl md:text-4xl">
+              <h1 className="mt-2 font-display font-bold text-3xl md:text-4xl text-slate-900">
                 Manage <span className="gradient-text">AI School</span> Platform
               </h1>
             </div>
@@ -972,12 +1416,12 @@ function AdminDashboardPage() {
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
             <div
-              className="surface-card p-5 cursor-pointer hover:border-purple-500/40 transition"
+              className="surface-card p-5 cursor-pointer hover:border-purple-400 transition"
               onClick={() => setActiveTab("courses")}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Total Courses</span>
-                <BookOpen className="size-4 text-purple-400" />
+                <span className="text-xs text-slate-500 font-medium">Total Courses</span>
+                <BookOpen className="size-4 text-purple-600" />
               </div>
               <div className="mt-2 font-display font-bold text-3xl gradient-text">
                 {courses.length}
@@ -985,53 +1429,83 @@ function AdminDashboardPage() {
             </div>
 
             <div
-              className="surface-card p-5 cursor-pointer hover:border-pink-500/40 transition"
+              className="surface-card p-5 cursor-pointer hover:border-pink-400 transition"
               onClick={() => setActiveTab("experts")}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Experts & Instructors</span>
-                <Users className="size-4 text-pink-400" />
+                <span className="text-xs text-slate-500 font-medium">Experts & Instructors</span>
+                <Users className="size-4 text-pink-500" />
               </div>
-              <div className="mt-2 font-display font-bold text-3xl text-pink-400">
+              <div className="mt-2 font-display font-bold text-3xl text-pink-500">
                 {experts.length}
               </div>
             </div>
 
             <div
-              className="surface-card p-5 cursor-pointer hover:border-amber-500/40 transition"
+              className="surface-card p-5 cursor-pointer hover:border-amber-400 transition"
               onClick={() => setActiveTab("prompts")}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Prompt Library</span>
-                <Sparkles className="size-4 text-amber-400" />
+                <span className="text-xs text-slate-500 font-medium">Prompt Library</span>
+                <Sparkles className="size-4 text-amber-500" />
               </div>
-              <div className="mt-2 font-display font-bold text-3xl text-amber-400">
+              <div className="mt-2 font-display font-bold text-3xl text-amber-500">
                 {prompts.length}
               </div>
             </div>
 
             <div
-              className="surface-card p-5 cursor-pointer hover:border-cyan-500/40 transition"
+              className="surface-card p-5 cursor-pointer hover:border-cyan-400 transition"
               onClick={() => setActiveTab("news")}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">AI News Articles</span>
-                <Newspaper className="size-4 text-cyan-400" />
+                <span className="text-xs text-slate-500 font-medium">AI News Articles</span>
+                <Newspaper className="size-4 text-cyan-600" />
               </div>
-              <div className="mt-2 font-display font-bold text-3xl text-cyan-400">
+              <div className="mt-2 font-display font-bold text-3xl text-cyan-600">
                 {newsArticles.length}
               </div>
             </div>
           </div>
 
           {/* Admin Navigation Tabs */}
-          <div className="flex gap-2 mt-10 border-b border-border pb-3 flex-wrap">
+          <div className="flex gap-2 mt-10 border-b border-slate-200 pb-3 flex-wrap">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === "dashboard"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              📊 Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === "orders"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              🧾 Orders ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("customers")}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === "customers"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              👥 Customers ({customers.length})
+            </button>
             <button
               onClick={() => setActiveTab("courses")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                 activeTab === "courses"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
               }`}
             >
               📚 Courses ({courses.length})
@@ -1040,18 +1514,18 @@ function AdminDashboardPage() {
               onClick={() => setActiveTab("experts")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                 activeTab === "experts"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
               }`}
             >
-              🎓 Experts / Instructors ({experts.length})
+              🎓 Experts ({experts.length})
             </button>
             {lessonsCourseSlug && (
               <button
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                   activeTab === "lessons"
-                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                    : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
                 }`}
                 onClick={() => setActiveTab("lessons")}
               >
@@ -1062,8 +1536,8 @@ function AdminDashboardPage() {
               onClick={() => setActiveTab("prompts")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                 activeTab === "prompts"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
               }`}
             >
               ✨ Prompt Library ({prompts.length})
@@ -1072,15 +1546,614 @@ function AdminDashboardPage() {
               onClick={() => setActiveTab("news")}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
                 activeTab === "news"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
+                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
               }`}
             >
               🗞️ AI News ({newsArticles.length})
             </button>
           </div>
 
-          {/* TAB 1: COURSES MANAGEMENT */}
+          {/* TAB 0: DASHBOARD OVERVIEW */}
+          {activeTab === "dashboard" && (
+            <div className="mt-8 space-y-8">
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-2xl text-foreground">
+                  Dashboard Overview
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Monitor your platform&apos;s key performance metrics, revenue, and customer
+                  trends.
+                </p>
+              </div>
+
+              {/* 3 Main Metric Cards (Matching User's Screenshot Design) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* 1. Total Revenue Card */}
+                <div className="surface-card p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between hover:border-pink-500/30 transition shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                        <span>Total Revenue</span>
+                        <div
+                          className="size-4 rounded-full border border-muted-foreground/30 text-[10px] text-muted-foreground flex items-center justify-center cursor-pointer"
+                          title="Total completed course sales revenue"
+                        >
+                          i
+                        </div>
+                      </div>
+                      <div className="mt-3 font-display font-extrabold text-3xl sm:text-4xl text-foreground tracking-tight">
+                        {totalRevenue > 0
+                          ? `৳${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                          : "0.00৳"}
+                      </div>
+                    </div>
+                    <div className="size-12 rounded-full bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md shadow-pink-500/20 shrink-0">
+                      <TrendingUp className="size-6" />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-border/60 space-y-2">
+                    <div className="text-xs text-muted-foreground flex justify-between">
+                      <span>Course Sales:</span>
+                      <span className="font-medium text-foreground">
+                        {totalRevenue > 0 ? `৳${totalRevenue.toLocaleString()}` : "0.00৳"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-pink-500/10 text-pink-400 border border-pink-500/20">
+                        100%
+                      </span>
+                      <span className="text-xs text-muted-foreground">since last period</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Total Customers Card */}
+                <div className="surface-card p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between hover:border-purple-500/30 transition shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                        <span>Total Customers</span>
+                        <div
+                          className="size-4 rounded-full border border-muted-foreground/30 text-[10px] text-muted-foreground flex items-center justify-center cursor-pointer"
+                          title="Registered students and buyers"
+                        >
+                          i
+                        </div>
+                      </div>
+                      <div className="mt-3 font-display font-extrabold text-3xl sm:text-4xl text-foreground tracking-tight">
+                        {customers.length}
+                      </div>
+                    </div>
+                    <div className="size-12 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0">
+                      <Users className="size-6" />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-border/60 space-y-2">
+                    <div className="text-xs text-muted-foreground flex justify-between">
+                      <span>Active Learners:</span>
+                      <span className="font-medium text-foreground">
+                        {customers.filter((c) => (c.enrollments_count || 0) > 0).length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                        100%
+                      </span>
+                      <span className="text-xs text-muted-foreground">since last period</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Total Online Orders Card */}
+                <div className="surface-card p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between hover:border-amber-500/30 transition shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                        <span>Total Online Orders</span>
+                        <div
+                          className="size-4 rounded-full border border-muted-foreground/30 text-[10px] text-muted-foreground flex items-center justify-center cursor-pointer"
+                          title="Total successful course enrollments"
+                        >
+                          i
+                        </div>
+                      </div>
+                      <div className="mt-3 font-display font-extrabold text-3xl sm:text-4xl text-foreground tracking-tight">
+                        {orders.length}
+                      </div>
+                    </div>
+                    <div className="size-12 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20 shrink-0">
+                      <Receipt className="size-6" />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-border/60 space-y-2">
+                    <div className="text-xs text-muted-foreground flex justify-between">
+                      <span>Completed / Active:</span>
+                      <span className="font-medium text-emerald-400">
+                        {
+                          orders.filter((o) => o.status === "active" || o.status === "completed")
+                            .length
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        100%
+                      </span>
+                      <span className="text-xs text-muted-foreground">since last period</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Orders Overview */}
+              <div className="surface-card p-6 rounded-3xl shadow-lg border border-border">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h4 className="font-display font-bold text-lg text-foreground">
+                      Recent Orders
+                    </h4>
+                    <p className="text-xs text-muted-foreground">Latest course purchase orders</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("orders")}
+                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                  >
+                    View All Orders <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No orders placed yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border/60 text-xs uppercase text-muted-foreground">
+                          <th className="pb-3 font-semibold">Student</th>
+                          <th className="pb-3 font-semibold">Course</th>
+                          <th className="pb-3 font-semibold">Plan</th>
+                          <th className="pb-3 font-semibold">Date</th>
+                          <th className="pb-3 font-semibold">Status</th>
+                          <th className="pb-3 font-semibold text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {orders.slice(0, 5).map((ord) => (
+                          <tr key={ord.id} className="hover:bg-white/[0.02]">
+                            <td className="py-3.5 pr-4">
+                              <div className="font-semibold text-foreground">{ord.user_name}</div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {ord.user_email}
+                              </div>
+                            </td>
+                            <td className="py-3.5 pr-4">
+                              <div className="font-medium text-foreground max-w-[200px] truncate">
+                                {ord.course_title}
+                              </div>
+                            </td>
+                            <td className="py-3.5 pr-4 font-semibold text-purple-400 text-xs">
+                              {ord.plan}
+                            </td>
+                            <td className="py-3.5 pr-4 text-xs text-muted-foreground whitespace-nowrap">
+                              {ord.created_at
+                                ? new Date(ord.created_at).toLocaleDateString()
+                                : "Recent"}
+                            </td>
+                            <td className="py-3.5 pr-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase ${
+                                  ord.status === "active" || ord.status === "completed"
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                    : ord.status === "pending"
+                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                                }`}
+                              >
+                                {ord.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditOrder(ord)}
+                                  className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
+                                  title="Edit Order"
+                                >
+                                  <Edit className="size-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrder(ord.id)}
+                                  className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                                  title="Delete Order"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Customers Overview */}
+              <div className="surface-card p-6 rounded-3xl shadow-lg border border-border">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h4 className="font-display font-bold text-lg text-foreground">
+                      Recent Customers
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Latest registered students & users
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("customers")}
+                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                  >
+                    View All Customers <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
+
+                {customers.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No customers registered yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border/60 text-xs uppercase text-muted-foreground">
+                          <th className="pb-3 font-semibold">Customer</th>
+                          <th className="pb-3 font-semibold">Email</th>
+                          <th className="pb-3 font-semibold">Enrollments</th>
+                          <th className="pb-3 font-semibold text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {customers.slice(0, 5).map((cust) => (
+                          <tr key={cust.id} className="hover:bg-white/[0.02]">
+                            <td className="py-3.5 pr-4 flex items-center gap-3">
+                              {cust.avatar_url ? (
+                                <img
+                                  src={cust.avatar_url}
+                                  alt={cust.full_name || "User"}
+                                  className="size-8 rounded-full object-cover border border-border"
+                                />
+                              ) : (
+                                <div className="size-8 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-xs flex items-center justify-center">
+                                  {(cust.full_name || "U")[0].toUpperCase()}
+                                </div>
+                              )}
+                              <span className="font-semibold text-foreground">
+                                {cust.full_name || "Unnamed Student"}
+                              </span>
+                            </td>
+                            <td className="py-3.5 pr-4 font-mono text-xs text-muted-foreground">
+                              {cust.email || "No email"}
+                            </td>
+                            <td className="py-3.5 pr-4 text-xs font-semibold text-purple-400">
+                              {cust.enrollments_count || 0} Courses
+                            </td>
+                            <td className="py-3.5 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditCustomer(cust)}
+                                  className="p-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
+                                  title="Edit Customer"
+                                >
+                                  <Edit className="size-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCustomer(cust.id)}
+                                  className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                                  title="Delete Customer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1: ORDERS / ENROLLMENTS MANAGEMENT (FULL CRUD) */}
+          {activeTab === "orders" && (
+            <div className="mt-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-display font-bold text-xl">All Orders & Enrollments</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Manage student course purchases, update order status, or create manual
+                    enrollments.
+                  </p>
+                </div>
+                <button
+                  onClick={openCreateOrder}
+                  className="btn-gradient text-xs inline-flex items-center gap-1.5"
+                >
+                  <Plus className="size-3.5" /> Create Manual Order
+                </button>
+              </div>
+
+              {/* Filters & Search */}
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-card p-3 rounded-2xl border border-border">
+                <div className="relative flex-1 w-full">
+                  <Search className="size-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    placeholder="Search by student name, email, course or order ID..."
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Filter className="size-3.5 text-muted-foreground" />
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="all">All Statuses ({orders.length})</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  <Loader2 className="size-6 animate-spin mx-auto mb-2 text-purple-400" />
+                  Loading orders...
+                </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="surface-card p-12 text-center space-y-3 rounded-3xl border border-border">
+                  <ShoppingBag className="size-10 text-muted-foreground/40 mx-auto" />
+                  <h4 className="font-display font-bold text-lg text-foreground">
+                    No orders found
+                  </h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {orderSearch || orderStatusFilter !== "all"
+                      ? "No orders match your filter criteria."
+                      : "When students enroll in courses, their orders will appear here."}
+                  </p>
+                  <button
+                    onClick={openCreateOrder}
+                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5 mt-2"
+                  >
+                    <Plus className="size-3.5" /> Create First Order
+                  </button>
+                </div>
+              ) : (
+                <div className="surface-card rounded-3xl overflow-hidden border border-border shadow-lg">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="bg-card/50 border-b border-border text-xs uppercase text-muted-foreground">
+                          <th className="py-3.5 px-4 font-semibold">Order ID</th>
+                          <th className="py-3.5 px-4 font-semibold">Student</th>
+                          <th className="py-3.5 px-4 font-semibold">Course</th>
+                          <th className="py-3.5 px-4 font-semibold">Plan / Price</th>
+                          <th className="py-3.5 px-4 font-semibold">Date</th>
+                          <th className="py-3.5 px-4 font-semibold">Status</th>
+                          <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {filteredOrders.map((ord) => (
+                          <tr key={ord.id} className="hover:bg-white/[0.02] transition">
+                            <td className="py-4 px-4 font-mono text-xs text-muted-foreground">
+                              {ord.id.slice(0, 8)}...
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="font-semibold text-foreground">{ord.user_name}</div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                {ord.user_email}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="font-medium text-foreground">{ord.course_title}</div>
+                              <div className="text-[11px] text-muted-foreground font-mono">
+                                /{ord.course_slug}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 font-semibold text-purple-400 text-xs">
+                              {ord.plan}
+                            </td>
+                            <td className="py-4 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                              {ord.created_at
+                                ? new Date(ord.created_at).toLocaleString()
+                                : "Recent"}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase ${
+                                  ord.status === "active" || ord.status === "completed"
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                    : ord.status === "pending"
+                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                                }`}
+                              >
+                                {ord.status}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditOrder(ord)}
+                                  className="btn-outline-pill py-1 px-2.5 text-xs inline-flex items-center gap-1"
+                                >
+                                  <Edit className="size-3" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrder(ord.id)}
+                                  className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                                  title="Delete Order"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 2: CUSTOMERS / STUDENTS MANAGEMENT (FULL CRUD) */}
+          {activeTab === "customers" && (
+            <div className="mt-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-display font-bold text-xl">All Customers & Students</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Manage student profiles, view purchase history, edit contact details, or delete
+                    accounts.
+                  </p>
+                </div>
+                <button
+                  onClick={openCreateCustomer}
+                  className="btn-gradient text-xs inline-flex items-center gap-1.5"
+                >
+                  <UserPlus className="size-3.5" /> Add New Customer
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="flex gap-3 items-center bg-card p-3 rounded-2xl border border-border">
+                <div className="relative flex-1">
+                  <Search className="size-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Search by customer name, email or bio..."
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">
+                  <Loader2 className="size-6 animate-spin mx-auto mb-2 text-purple-400" />
+                  Loading customers...
+                </div>
+              ) : filteredCustomers.length === 0 ? (
+                <div className="surface-card p-12 text-center space-y-3 rounded-3xl border border-border">
+                  <Users className="size-10 text-muted-foreground/40 mx-auto" />
+                  <h4 className="font-display font-bold text-lg text-foreground">
+                    No customers found
+                  </h4>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {customerSearch
+                      ? "No customers match your search."
+                      : "When users sign up or purchase courses, they will appear here."}
+                  </p>
+                  <button
+                    onClick={openCreateCustomer}
+                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5 mt-2"
+                  >
+                    <UserPlus className="size-3.5" /> Add Customer Manually
+                  </button>
+                </div>
+              ) : (
+                <div className="surface-card rounded-3xl overflow-hidden border border-border shadow-lg">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="bg-card/50 border-b border-border text-xs uppercase text-muted-foreground">
+                          <th className="py-3.5 px-4 font-semibold">Customer</th>
+                          <th className="py-3.5 px-4 font-semibold">Email</th>
+                          <th className="py-3.5 px-4 font-semibold">Bio / Note</th>
+                          <th className="py-3.5 px-4 font-semibold">Enrollments</th>
+                          <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {filteredCustomers.map((cust) => (
+                          <tr key={cust.id} className="hover:bg-white/[0.02] transition">
+                            <td className="py-4 px-4 flex items-center gap-3">
+                              {cust.avatar_url ? (
+                                <img
+                                  src={cust.avatar_url}
+                                  alt={cust.full_name || "User"}
+                                  className="size-10 rounded-full object-cover border border-border"
+                                />
+                              ) : (
+                                <div className="size-10 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-sm flex items-center justify-center">
+                                  {(cust.full_name || "U")[0].toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-semibold text-foreground">
+                                  {cust.full_name || "Unnamed Student"}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground font-mono">
+                                  ID: {cust.id.slice(0, 8)}...
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 font-mono text-xs text-muted-foreground">
+                              {cust.email || "No email"}
+                            </td>
+                            <td className="py-4 px-4 text-xs text-muted-foreground max-w-xs truncate">
+                              {cust.bio || "—"}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                {cust.enrollments_count || 0} Courses
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditCustomer(cust)}
+                                  className="btn-outline-pill py-1 px-2.5 text-xs inline-flex items-center gap-1"
+                                >
+                                  <Edit className="size-3" /> Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCustomer(cust.id)}
+                                  className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
+                                  title="Delete Customer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: COURSES MANAGEMENT */}
           {activeTab === "courses" && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-4">
@@ -2652,7 +3725,276 @@ function AdminDashboardPage() {
         </div>
       )}
 
-      <Footer />
+      {/* ==================== MODAL: ADD / EDIT ORDER ==================== */}
+      {showOrderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="surface-card w-full max-w-lg p-6 rounded-3xl border border-border shadow-2xl relative">
+            <button
+              onClick={() => {
+                resetOrderForm();
+                setShowOrderModal(false);
+              }}
+              className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition p-1"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="size-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 grid place-items-center">
+                <Receipt className="size-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-xl text-foreground">
+                  {editingOrderId ? "Edit Order / Enrollment" : "Create Manual Order"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {editingOrderId
+                    ? "Update order details, status, or course assignment"
+                    : "Assign a course enrollment directly to a student"}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveOrder} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Select Course *
+                </label>
+                <select
+                  required
+                  value={orderCourseSlug}
+                  onChange={(e) => {
+                    const slug = e.target.value;
+                    setOrderCourseSlug(slug);
+                    const found = courses.find((c) => c.slug === slug);
+                    if (found) {
+                      setOrderCourseTitle(found.title);
+                      setOrderPlan(`৳${found.price} / ${found.period}`);
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                >
+                  <option value="">-- Choose Course --</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.slug}>
+                      {c.title} (৳{c.price} / {c.period})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Student Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={orderUserName}
+                    onChange={(e) => setOrderUserName(e.target.value)}
+                    placeholder="e.g. Rahim Khan"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Student Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={orderUserEmail}
+                    onChange={(e) => setOrderUserEmail(e.target.value)}
+                    placeholder="student@gmail.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Price / Plan Text
+                  </label>
+                  <input
+                    type="text"
+                    value={orderPlan}
+                    onChange={(e) => setOrderPlan(e.target.value)}
+                    placeholder="৳1,900 / month"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Order Status *
+                  </label>
+                  <select
+                    value={orderStatus}
+                    onChange={(e) => setOrderStatus(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                  >
+                    <option value="active">Active (Full Access)</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetOrderForm();
+                    setShowOrderModal(false);
+                  }}
+                  className="btn-outline-pill text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingOrder}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {savingOrder && <Loader2 className="size-4 animate-spin" />}
+                  {editingOrderId ? "Update Order" : "Save Order"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: ADD / EDIT CUSTOMER ==================== */}
+      {showCustomerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="surface-card w-full max-w-lg p-6 rounded-3xl border border-border shadow-2xl relative">
+            <button
+              onClick={() => {
+                resetCustomerForm();
+                setShowCustomerModal(false);
+              }}
+              className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition p-1"
+            >
+              <X className="size-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="size-10 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/20 grid place-items-center">
+                <Users className="size-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-xl text-foreground">
+                  {editingCustomerId ? "Edit Customer Profile" : "Add New Customer"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {editingCustomerId
+                    ? "Update student name, email, or bio"
+                    : "Create a new student profile in the database"}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveCustomer} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={custFullName}
+                  onChange={(e) => setCustFullName(e.target.value)}
+                  placeholder="e.g. Tanvir Hasan"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={custEmail}
+                  onChange={(e) => setCustEmail(e.target.value)}
+                  placeholder="tanvir@gmail.com"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Avatar / Profile Photo
+                </label>
+                <div className="flex items-center gap-2">
+                  <label className="btn-outline-pill text-xs inline-flex items-center gap-1.5 cursor-pointer py-2 px-3">
+                    {uploadingCustAvatar ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="size-3.5 text-purple-400" />
+                    )}
+                    <span>{uploadingCustAvatar ? "Uploading..." : "Upload Photo"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleCustomerAvatarUpload(file);
+                      }}
+                      disabled={uploadingCustAvatar}
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={custAvatarUrl}
+                    onChange={(e) => setCustAvatarUrl(e.target.value)}
+                    placeholder="or paste image URL..."
+                    className="flex-1 px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Bio / Student Note
+                </label>
+                <textarea
+                  rows={3}
+                  value={custBio}
+                  onChange={(e) => setCustBio(e.target.value)}
+                  placeholder="Creative AI enthusiast, enrolled in batch 1..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:border-purple-500 resize-none text-xs"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetCustomerForm();
+                    setShowCustomerModal(false);
+                  }}
+                  className="btn-outline-pill text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCustomer}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {savingCustomer && <Loader2 className="size-4 animate-spin" />}
+                  {editingCustomerId ? "Update Customer" : "Save Customer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
