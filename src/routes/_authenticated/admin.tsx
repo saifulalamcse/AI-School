@@ -1303,9 +1303,6 @@ function AdminDashboardPage() {
               className="flex items-center gap-2.5 hover:opacity-90 transition cursor-pointer"
             >
               <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
-              <span className="font-display font-bold text-lg tracking-tight text-slate-900">
-                AI School
-              </span>
             </Link>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
               <Shield className="size-3" /> Admin Portal
