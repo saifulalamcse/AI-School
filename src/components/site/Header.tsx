@@ -90,7 +90,7 @@ export function Header() {
             to="/courses"
             className="hidden sm:inline-flex items-center justify-center px-4 py-2 rounded-full border border-neutral-300 bg-white hover:bg-neutral-50 hover:border-neutral-400 text-sm font-medium text-neutral-800 transition shadow-sm"
           >
-            All Courses
+            Visit Course
           </Link>
 
           {loading ? (
