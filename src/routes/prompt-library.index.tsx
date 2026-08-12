@@ -69,7 +69,7 @@ function PromptLibraryPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <div className="min-h-screen bg-[#faf9f6] text-neutral-900">
       <Header />
       <main className="pt-32 pb-24 bg-[#faf9f6]">
         <section className="mx-auto max-w-7xl px-5">

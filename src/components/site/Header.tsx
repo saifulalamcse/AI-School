@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { Menu, X, LayoutDashboard, LogOut, BookOpen, Sparkles, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, X, LayoutDashboard, LogOut, BookOpen, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
   DropdownMenu,
@@ -23,8 +23,6 @@ const nav = [
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, profile, isAdmin, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -34,17 +32,6 @@ export function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setMenuOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setMenuOpen(false);
-    }, 150);
-  };
 
   const initials =
     (profile?.full_name || user?.email || "?")
@@ -57,10 +44,8 @@ export function Header() {
   const userName = profile?.full_name || user?.email?.split("@")[0] || "User";
 
   async function handleSignOut() {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     await signOut();
     setOpen(false);
-    setMenuOpen(false);
     navigate({ to: "/", replace: true });
   }
 
@@ -76,12 +61,12 @@ export function Header() {
           }}
         >
           <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
-          <span className="font-display font-bold text-lg tracking-tight text-white">
+          <span className="font-display font-bold text-lg tracking-tight text-neutral-900">
             AI School
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
+        <nav className="hidden md:flex items-center gap-1 text-sm text-neutral-600">
           {nav.map((n) => (
             <Link
               key={n.to}
@@ -91,8 +76,8 @@ export function Header() {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
-              className="px-3 py-2 rounded-full hover:text-foreground hover:bg-white/5 transition-colors"
-              activeProps={{ className: "text-foreground bg-white/5" }}
+              className="px-3 py-2 rounded-full hover:text-neutral-900 hover:bg-neutral-800/5 transition-colors"
+              activeProps={{ className: "text-neutral-900 bg-neutral-800/5 font-medium" }}
               activeOptions={{ exact: n.to === "/" }}
             >
               {n.label}
@@ -103,24 +88,19 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link
             to="/courses"
-            className="hidden sm:inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 text-sm font-medium text-white transition shadow-sm"
+            className="hidden sm:inline-flex items-center justify-center px-4 py-2 rounded-full border border-neutral-300 bg-white hover:bg-neutral-50 hover:border-neutral-400 text-sm font-medium text-neutral-800 transition shadow-sm"
           >
             All Courses
           </Link>
 
           {loading ? (
-            <span className="hidden sm:block h-9 w-24 rounded-full bg-white/5 animate-pulse" />
+            <span className="hidden sm:block h-9 w-24 rounded-full bg-neutral-800/10 animate-pulse" />
           ) : user ? (
             <>
-              <div
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                className="relative hidden sm:block"
-              >
-                <DropdownMenu modal={false} open={menuOpen} onOpenChange={setMenuOpen}>
+              <div className="relative hidden sm:block">
+                <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <button
-                      onClick={() => setMenuOpen((prev) => !prev)}
                       title={userName}
                       className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden"
                     >
@@ -138,8 +118,6 @@ export function Header() {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={6}
-                    onMouseEnter={handleMouseEnter}
-                    onMouseLeave={handleMouseLeave}
                     className="w-56 bg-background/95 backdrop-blur-xl border border-border shadow-2xl p-2 rounded-2xl animate-none"
                   >
                     <DropdownMenuLabel className="font-normal px-2 py-2">
@@ -157,7 +135,6 @@ export function Header() {
                       <>
                         <DropdownMenuItem
                           asChild
-                          onClick={() => setMenuOpen(false)}
                           className="rounded-xl cursor-pointer py-2 px-2 focus:bg-amber-500/10 text-amber-400 font-medium"
                         >
                           <Link to="/admin" className="flex items-center gap-2 text-sm w-full">
@@ -170,7 +147,6 @@ export function Header() {
                     )}
                     <DropdownMenuItem
                       asChild
-                      onClick={() => setMenuOpen(false)}
                       className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
                     >
                       <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
@@ -180,22 +156,11 @@ export function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       asChild
-                      onClick={() => setMenuOpen(false)}
                       className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
                     >
                       <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
                         <BookOpen className="size-4 text-pink-400" />
                         <span>My Courses</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      asChild
-                      onClick={() => setMenuOpen(false)}
-                      className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
-                    >
-                      <Link to="/prompt-library" className="flex items-center gap-2 text-sm w-full">
-                        <Sparkles className="size-4 text-amber-400" />
-                        <span>Prompt Library</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1 bg-border/60" />
@@ -239,8 +204,8 @@ export function Header() {
                 key={n.to}
                 to={n.to}
                 onClick={() => setOpen(false)}
-                className="px-3 py-3 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
-                activeProps={{ className: "text-foreground bg-white/5" }}
+                className="px-3 py-3 rounded-xl text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-800/5 transition"
+                activeProps={{ className: "text-neutral-950 bg-neutral-800/5" }}
                 activeOptions={{ exact: n.to === "/" }}
               >
                 {n.label}
@@ -249,7 +214,7 @@ export function Header() {
             <Link
               to="/courses"
               onClick={() => setOpen(false)}
-              className="px-3 py-3 rounded-xl text-sm font-semibold text-purple-400 hover:bg-white/5 transition"
+              className="px-3 py-3 rounded-xl text-sm font-semibold text-purple-600 hover:bg-neutral-800/5 transition"
             >
               ✦ All Courses
             </Link>

@@ -39,6 +39,7 @@ import {
   LayoutDashboard,
   LogOut,
   Globe,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,15 +127,53 @@ function AdminDashboardPage() {
       .toUpperCase() || "?";
 
   const userName = profile?.full_name || user?.email?.split("@")[0] || "Admin";
+  const isSuperAdmin = user?.email === "saifulalamcse@gmail.com";
 
   async function handleAdminSignOut() {
     await signOut();
     navigate({ to: "/", replace: true });
   }
 
+  const [mainSection, setMainSection] = useState<"dashboard" | "settings">("dashboard");
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "orders" | "customers" | "courses" | "experts" | "lessons" | "prompts" | "news"
+    | "dashboard"
+    | "orders"
+    | "customers"
+    | "courses"
+    | "experts"
+    | "lessons"
+    | "prompts"
+    | "news"
+    | "admins"
   >("dashboard");
+
+  function switchTab(
+    tab:
+      | "dashboard"
+      | "orders"
+      | "customers"
+      | "courses"
+      | "experts"
+      | "lessons"
+      | "prompts"
+      | "news"
+      | "admins",
+  ) {
+    if (tab === "admins" && !isSuperAdmin) {
+      setActiveTab("dashboard");
+      setMainSection("dashboard");
+      return;
+    }
+    setActiveTab(tab);
+    if (tab === "dashboard" || tab === "orders" || tab === "customers") {
+      setMainSection("dashboard");
+    } else {
+      setMainSection("settings");
+    }
+  }
+
+  const [isDashboardExpanded, setIsDashboardExpanded] = useState(true);
+  const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
   const [lessonsCourseSlug, setLessonsCourseSlug] = useState<string | null>(null);
 
   // Orders and Customers State
@@ -165,6 +204,17 @@ function AdminDashboardPage() {
   const [custAvatarUrl, setCustAvatarUrl] = useState("");
   const [uploadingCustAvatar, setUploadingCustAvatar] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
+
+  // Modal State for Customer Details
+  const [showCustomerDetailsModal, setShowCustomerDetailsModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<DynamicCustomer | null>(null);
+
+  // Modal State for Admins Management (Super Admin only)
+  const [adminsList, setAdminsList] = useState<any[]>([]);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [savingAdmin, setSavingAdmin] = useState(false);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
 
   // Sections state
   const [sections, setSections] = useState<Section[]>([]);
@@ -273,7 +323,7 @@ function AdminDashboardPage() {
   async function loadAllData() {
     setLoading(true);
     try {
-      const [cData, eData, pData, promptsRes, newsDataRes, enrollmentsRes, profilesRes] =
+      const [cData, eData, pData, promptsRes, newsDataRes, enrollmentsRes, profilesRes, rolesRes] =
         await Promise.all([
           fetchCourses().catch(() => []),
           fetchExperts().catch(() => []),
@@ -302,6 +352,12 @@ function AdminDashboardPage() {
             .from("profiles")
             .select("*")
             .order("created_at", { ascending: false })
+            .then((r) => r.data ?? [])
+            .catch(() => []),
+          supabase
+            .from("user_roles")
+            .select("*")
+            .eq("role", "admin")
             .then((r) => r.data ?? [])
             .catch(() => []),
         ]);
@@ -353,6 +409,33 @@ function AdminDashboardPage() {
         };
       });
 
+      const mappedAdmins = ((rolesRes || []) as any[]).map((roleRecord: any) => {
+        const profile = (profilesRes || []).find((p: any) => p.id === roleRecord.user_id);
+        return {
+          ...roleRecord,
+          full_name: profile?.full_name || "Admin User",
+          email: profile?.email || "No email",
+          avatar_url: profile?.avatar_url || null,
+        };
+      });
+
+      // Ensure saifulalamcse@gmail.com is in the list even if database role row is not seeded yet
+      const saifulProfile = (profilesRes || []).find(
+        (p: any) => p.email === "saifulalamcse@gmail.com",
+      );
+      const hasSaiful = mappedAdmins.some((a) => a.email === "saifulalamcse@gmail.com");
+      if (!hasSaiful && saifulProfile) {
+        mappedAdmins.push({
+          id: "super-admin-row",
+          user_id: saifulProfile.id,
+          role: "admin",
+          full_name: saifulProfile.full_name,
+          email: saifulProfile.email,
+          avatar_url: saifulProfile.avatar_url,
+          created_at: new Date().toISOString(),
+        });
+      }
+
       setCourses(cData || []);
       setExperts(eData || []);
       setPlans(pData || []);
@@ -360,6 +443,7 @@ function AdminDashboardPage() {
       setNewsArticles(mappedNews);
       setOrders(mappedOrders);
       setCustomers(mappedCustomers);
+      setAdminsList(mappedAdmins);
     } catch (err) {
       console.error("loadAllData global err:", err);
     } finally {
@@ -1155,6 +1239,11 @@ function AdminDashboardPage() {
     setShowCustomerModal(true);
   }
 
+  function openCustomerDetails(cust: DynamicCustomer) {
+    setSelectedCustomer(cust);
+    setShowCustomerDetailsModal(true);
+  }
+
   async function handleSaveCustomer(e: React.FormEvent) {
     e.preventDefault();
     if (!custFullName.trim()) return toast.error("Full name is required.");
@@ -1207,6 +1296,63 @@ function AdminDashboardPage() {
       loadAllData();
     } catch (err: any) {
       toast.error(err?.message || "Failed to delete customer.");
+    }
+  }
+
+  async function handleAddAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!adminEmail.trim()) return toast.error("User email is required.");
+    setSavingAdmin(true);
+    try {
+      // Find user profile by email in our already loaded customers (profiles)
+      const foundUser = customers.find(
+        (c) => c.email?.toLowerCase().trim() === adminEmail.trim().toLowerCase(),
+      );
+      if (!foundUser) {
+        throw new Error(
+          "No registered user found with this email. Please ask them to sign up first.",
+        );
+      }
+
+      // Check if they are already an admin
+      const isAlreadyAdmin = adminsList.some((a) => a.user_id === foundUser.id);
+      if (isAlreadyAdmin) {
+        throw new Error("This user is already an admin.");
+      }
+
+      const { error } = await supabase.from("user_roles").insert({
+        user_id: foundUser.id,
+        role: "admin",
+      });
+
+      if (error) throw error;
+      toast.success("Admin role added successfully!");
+      setAdminEmail("");
+      setShowAdminModal(false);
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add admin role.");
+    } finally {
+      setSavingAdmin(false);
+    }
+  }
+
+  async function handleRevokeAdmin(userId: string, email: string) {
+    if (email === "saifulalamcse@gmail.com") {
+      return toast.error("Super Admin role cannot be revoked.");
+    }
+    if (!confirm(`Are you sure you want to revoke admin access for ${email}?`)) return;
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("role", "admin");
+      if (error) throw error;
+      toast.success("Admin role revoked.");
+      loadAllData();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to revoke admin role.");
     }
   }
 
@@ -1293,36 +1439,196 @@ function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen admin-portal bg-[#f8f9fb] text-slate-900">
-      {/* Dedicated Admin Header (Only Profile Option on right, off-white clean navbar) */}
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/95 border-b border-slate-200 shadow-sm">
-        <div className="mx-auto max-w-7xl px-5 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 hover:opacity-90 transition cursor-pointer"
+    <div className="min-h-screen admin-portal bg-[#f8f9fb] text-slate-900 flex">
+      {/* 1. Left Sidebar Navigation (Accordion Menus) */}
+      <aside className="w-64 border-r border-slate-200 bg-white fixed top-0 bottom-0 left-0 z-40 flex flex-col shadow-xs shrink-0 select-none">
+        {/* Brand/Logo Section */}
+        <div className="h-16 flex items-center px-6 border-b border-slate-200 bg-white shrink-0">
+          <Link to="/" className="flex items-center hover:opacity-90 transition cursor-pointer">
+            <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
+          </Link>
+          <span className="ml-3 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-0.5">
+            <Shield className="size-2.5" /> Admin Portal
+          </span>
+        </div>
+
+        {/* Sidebar Scrollable Menu Items */}
+        <nav className="flex-1 p-4 overflow-y-auto space-y-3">
+          {/* Dashboard Category Accordion */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsDashboardExpanded(!isDashboardExpanded)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition ${
+                mainSection === "dashboard"
+                  ? "bg-purple-50 text-purple-700 font-extrabold"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
             >
-              <img src={logoImg} alt="AI School Logo" className="size-8 rounded-lg object-cover" />
-            </Link>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-              <Shield className="size-3" /> Admin Portal
+              <div className="flex items-center gap-2.5">
+                <LayoutDashboard className="size-4 text-purple-600" />
+                <span>Dashboard</span>
+              </div>
+              <ChevronDown
+                className={`size-3.5 transition-transform duration-200 ${
+                  isDashboardExpanded ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+            </button>
+
+            {isDashboardExpanded && (
+              <div className="ml-2 pl-3 border-l border-slate-200 flex flex-col gap-1 mt-1">
+                <button
+                  onClick={() => switchTab("dashboard")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "dashboard"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <TrendingUp className="size-3.5 shrink-0" />
+                  <span>Overview</span>
+                </button>
+                <button
+                  onClick={() => switchTab("orders")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "orders"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Receipt className="size-3.5 shrink-0" />
+                  <span>Orders ({orders.length})</span>
+                </button>
+                <button
+                  onClick={() => switchTab("customers")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "customers"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Users className="size-3.5 shrink-0" />
+                  <span>Customers ({customers.length})</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Settings Category Accordion */}
+          <div className="space-y-1">
+            <button
+              onClick={() => setIsSettingsExpanded(!isSettingsExpanded)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition ${
+                mainSection === "settings"
+                  ? "bg-purple-50 text-purple-700 font-extrabold"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Settings className="size-4 text-purple-600" />
+                <span>Settings</span>
+              </div>
+              <ChevronDown
+                className={`size-3.5 transition-transform duration-200 ${
+                  isSettingsExpanded ? "rotate-0" : "-rotate-90"
+                }`}
+              />
+            </button>
+
+            {isSettingsExpanded && (
+              <div className="ml-2 pl-3 border-l border-slate-200 flex flex-col gap-1 mt-1">
+                <button
+                  onClick={() => switchTab("courses")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "courses"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <BookOpen className="size-3.5 shrink-0" />
+                  <span>Courses ({courses.length})</span>
+                </button>
+                <button
+                  onClick={() => switchTab("experts")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "experts"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Users className="size-3.5 shrink-0" />
+                  <span>Experts ({experts.length})</span>
+                </button>
+
+                <button
+                  onClick={() => switchTab("prompts")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "prompts"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Sparkles className="size-3.5 shrink-0" />
+                  <span>Prompts ({prompts.length})</span>
+                </button>
+                <button
+                  onClick={() => switchTab("news")}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                    activeTab === "news"
+                      ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
+                >
+                  <Newspaper className="size-3.5 shrink-0" />
+                  <span>AI News ({newsArticles.length})</span>
+                </button>
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => switchTab("admins")}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                      activeTab === "admins"
+                        ? "bg-purple-600 text-white font-extrabold shadow-xs"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Shield className="size-3.5 shrink-0" />
+                    <span>Admins ({adminsList.length})</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Sidebar Footer Link */}
+        <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex flex-col gap-1 shrink-0">
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition"
+          >
+            <Globe className="size-4 text-slate-500" />
+            <span>View Public Site</span>
+          </Link>
+        </div>
+      </aside>
+
+      {/* 2. Main Layout Area (Sits next to the sidebar) */}
+      <div className="flex-1 pl-64 flex flex-col min-h-screen">
+        {/* Top Header Bar */}
+        <header className="fixed top-0 right-0 left-64 h-16 z-30 backdrop-blur-xl bg-white/95 border-b border-slate-200 shadow-xs flex items-center justify-between px-8">
+          <div className="flex items-center gap-2">
+            <span className="font-display font-extrabold text-sm text-slate-800 tracking-tight uppercase">
+              {activeTab === "dashboard" ? "Overview" : activeTab}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 transition px-3 py-1.5 rounded-xl hover:bg-slate-100 border border-slate-200 bg-white shadow-xs"
-            >
-              <Globe className="size-3.5" /> View Main Site
-            </Link>
-
-            {/* Profile Menu Dropdown */}
+            {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   title={userName}
-                  className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden border border-slate-200 shadow-sm"
+                  className="grid size-9 place-items-center rounded-full gradient-bg text-xs font-semibold text-white hover:opacity-90 transition cursor-pointer outline-none overflow-hidden border border-slate-200 shadow-sm"
                 >
                   {profile?.avatar_url ? (
                     <img
@@ -1382,11 +1688,10 @@ function AdminDashboardPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="pt-24 pb-20">
-        <div className="mx-auto max-w-7xl px-5">
+        {/* Content Wrapper */}
+        <main className="pt-20 pb-20 px-8 flex-1">
           {/* Header Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-slate-200">
             <div>
@@ -1397,158 +1702,6 @@ function AdminDashboardPage() {
                 Manage <span className="gradient-text">AI School</span> Platform
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  resetCourseForm();
-                  setShowCourseModal(true);
-                }}
-                className="btn-gradient text-sm inline-flex items-center gap-2"
-              >
-                <Plus className="size-4" /> Add New Course
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-            <div
-              className="surface-card p-5 cursor-pointer hover:border-purple-400 transition"
-              onClick={() => setActiveTab("courses")}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Total Courses</span>
-                <BookOpen className="size-4 text-purple-600" />
-              </div>
-              <div className="mt-2 font-display font-bold text-3xl gradient-text">
-                {courses.length}
-              </div>
-            </div>
-
-            <div
-              className="surface-card p-5 cursor-pointer hover:border-pink-400 transition"
-              onClick={() => setActiveTab("experts")}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Experts & Instructors</span>
-                <Users className="size-4 text-pink-500" />
-              </div>
-              <div className="mt-2 font-display font-bold text-3xl text-pink-500">
-                {experts.length}
-              </div>
-            </div>
-
-            <div
-              className="surface-card p-5 cursor-pointer hover:border-amber-400 transition"
-              onClick={() => setActiveTab("prompts")}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">Prompt Library</span>
-                <Sparkles className="size-4 text-amber-500" />
-              </div>
-              <div className="mt-2 font-display font-bold text-3xl text-amber-500">
-                {prompts.length}
-              </div>
-            </div>
-
-            <div
-              className="surface-card p-5 cursor-pointer hover:border-cyan-400 transition"
-              onClick={() => setActiveTab("news")}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium">AI News Articles</span>
-                <Newspaper className="size-4 text-cyan-600" />
-              </div>
-              <div className="mt-2 font-display font-bold text-3xl text-cyan-600">
-                {newsArticles.length}
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Navigation Tabs */}
-          <div className="flex gap-2 mt-10 border-b border-slate-200 pb-3 flex-wrap">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "dashboard"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab("orders")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "orders"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              🧾 Orders ({orders.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("customers")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "customers"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              👥 Customers ({customers.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("courses")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "courses"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              📚 Courses ({courses.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("experts")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "experts"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              🎓 Experts ({experts.length})
-            </button>
-            {lessonsCourseSlug && (
-              <button
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                  activeTab === "lessons"
-                    ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                    : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-                }`}
-                onClick={() => setActiveTab("lessons")}
-              >
-                🎬 Lessons: {lessonsCourseSlug}
-              </button>
-            )}
-            <button
-              onClick={() => setActiveTab("prompts")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "prompts"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              ✨ Prompt Library ({prompts.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("news")}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-                activeTab === "news"
-                  ? "bg-purple-600 text-white shadow-sm shadow-purple-500/20"
-                  : "text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              🗞️ AI News ({newsArticles.length})
-            </button>
           </div>
 
           {/* TAB 0: DASHBOARD OVERVIEW */}
@@ -1696,7 +1849,7 @@ function AdminDashboardPage() {
                     <p className="text-xs text-muted-foreground">Latest course purchase orders</p>
                   </div>
                   <button
-                    onClick={() => setActiveTab("orders")}
+                    onClick={() => switchTab("orders")}
                     className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
                   >
                     View All Orders <ArrowRight className="size-3.5" />
@@ -1793,7 +1946,7 @@ function AdminDashboardPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setActiveTab("customers")}
+                    onClick={() => switchTab("customers")}
                     className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
                   >
                     View All Customers <ArrowRight className="size-3.5" />
@@ -2126,6 +2279,12 @@ function AdminDashboardPage() {
                             <td className="py-4 px-4 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-2">
                                 <button
+                                  onClick={() => openCustomerDetails(cust)}
+                                  className="btn-outline-pill py-1 px-2.5 text-xs inline-flex items-center gap-1 border-purple-200 text-purple-600 hover:bg-purple-50 cursor-pointer"
+                                >
+                                  <Eye className="size-3" /> Details
+                                </button>
+                                <button
                                   onClick={() => openEditCustomer(cust)}
                                   className="btn-outline-pill py-1 px-2.5 text-xs inline-flex items-center gap-1"
                                 >
@@ -2300,196 +2459,244 @@ function AdminDashboardPage() {
           )}
 
           {/* TAB 3: LESSONS MANAGEMENT */}
-          {activeTab === "lessons" && lessonsCourseSlug && (
+          {activeTab === "lessons" && (
             <div className="mt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                <div>
-                  <h3 className="font-display font-bold text-xl">Lesson Manager</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Course:{" "}
-                    <span className="text-purple-300 font-semibold">{lessonsCourseSlug}</span>
+              {!lessonsCourseSlug ? (
+                <div className="bg-white p-8 rounded-3xl max-w-md mx-auto text-center border border-slate-200 shadow-sm mt-8">
+                  <Video className="size-12 text-purple-600 mx-auto mb-4" />
+                  <h3 className="font-display font-bold text-xl text-slate-800">Select a Course</h3>
+                  <p className="text-xs text-slate-500 mt-2 mb-6">
+                    Please select a course from the dropdown below to manage its syllabus sections
+                    and lessons.
                   </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      resetSectionForm();
-                      setShowSectionModal(true);
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const slug = e.target.value;
+                      if (slug) setLessonsCourseSlug(slug);
                     }}
-                    className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-purple-500 text-xs font-bold"
                   >
-                    <Plus className="size-3.5" /> Add Section
-                  </button>
-                  <button
-                    onClick={() => {
-                      resetLessonForm();
-                      if (sections.length > 0) setLessonSectionId(sections[0].id);
-                      setShowLessonModal(true);
-                    }}
-                    className="btn-gradient text-xs inline-flex items-center gap-1.5"
-                  >
-                    <Plus className="size-3.5" /> Add Lesson
-                  </button>
-                </div>
-              </div>
-
-              {loadingSections ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">
-                  <Loader2 className="size-6 animate-spin mx-auto mb-2 text-purple-400" />
-                  Loading sections...
-                </div>
-              ) : sections.length === 0 ? (
-                <div className="py-16 text-center surface-card">
-                  <List className="size-10 text-purple-400 mx-auto mb-3" />
-                  <h4 className="font-display font-bold text-lg">No sections yet</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Start by adding a section (e.g. "Week 1").
-                  </p>
+                    <option value="">-- Choose Course --</option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.slug}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {sections.map((sec) => (
-                    <div key={sec.id} className="surface-card overflow-hidden">
-                      {/* Section Header */}
-                      <div
-                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/3 transition"
-                        onClick={() =>
-                          setExpandedSections((prev) => ({ ...prev, [sec.id]: !prev[sec.id] }))
-                        }
-                      >
-                        <div className="flex items-center gap-3">
-                          {expandedSections[sec.id] ? (
-                            <ChevronUp className="size-4 text-purple-400" />
-                          ) : (
-                            <ChevronDown className="size-4 text-purple-400" />
-                          )}
-                          <span className="font-semibold text-foreground">{sec.title}</span>
-                          <span className="text-xs text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">
-                            {sec.lessons?.length ?? 0} lessons
-                          </span>
-                        </div>
-                        <div
-                          className="flex items-center gap-2"
-                          onClick={(e) => e.stopPropagation()}
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display font-bold text-xl text-slate-800">
+                          Lesson Manager
+                        </h3>
+                        <button
+                          onClick={() => setLessonsCourseSlug(null)}
+                          className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold transition cursor-pointer"
                         >
-                          <button
-                            onClick={() => {
-                              setEditingSectionId(sec.id);
-                              setSecTitle(sec.title);
-                              setShowSectionModal(true);
-                            }}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition"
-                          >
-                            <Edit className="size-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSection(sec.id)}
-                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
+                          Change Course
+                        </button>
                       </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Selected Course:{" "}
+                        <span className="text-purple-600 font-bold">
+                          {courses.find((c) => c.slug === lessonsCourseSlug)?.title ||
+                            lessonsCourseSlug}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          resetSectionForm();
+                          setShowSectionModal(true);
+                        }}
+                        className="btn-outline-pill text-xs inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="size-3.5" /> Add Section
+                      </button>
+                      <button
+                        onClick={() => {
+                          resetLessonForm();
+                          if (sections.length > 0) setLessonSectionId(sections[0].id);
+                          setShowLessonModal(true);
+                        }}
+                        className="btn-gradient text-xs inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="size-3.5" /> Add Lesson
+                      </button>
+                    </div>
+                  </div>
 
-                      {/* Lessons List */}
-                      {expandedSections[sec.id] && (
-                        <div className="border-t border-border divide-y divide-border">
-                          {(sec.lessons ?? []).length === 0 ? (
-                            <div className="px-6 py-5 text-sm text-muted-foreground">
-                              No lessons yet.{" "}
+                  {loadingSections ? (
+                    <div className="py-12 text-center text-slate-500 text-sm">
+                      <Loader2 className="size-6 animate-spin mx-auto mb-2 text-purple-600" />
+                      Loading sections...
+                    </div>
+                  ) : sections.length === 0 ? (
+                    <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl shadow-xs">
+                      <List className="size-10 text-purple-400 mx-auto mb-3" />
+                      <h4 className="font-display font-bold text-lg text-slate-800">
+                        No sections yet
+                      </h4>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Start by adding a section (e.g. "Week 1 — ChatGPT Basics").
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {sections.map((sec) => (
+                        <div
+                          key={sec.id}
+                          className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs"
+                        >
+                          {/* Section Header */}
+                          <div
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition"
+                            onClick={() =>
+                              setExpandedSections((prev) => ({ ...prev, [sec.id]: !prev[sec.id] }))
+                            }
+                          >
+                            <div className="flex items-center gap-3">
+                              {expandedSections[sec.id] ? (
+                                <ChevronUp className="size-4 text-purple-600" />
+                              ) : (
+                                <ChevronDown className="size-4 text-purple-600" />
+                              )}
+                              <span className="font-bold text-slate-800">{sec.title}</span>
+                              <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                                {sec.lessons?.length ?? 0} lessons
+                              </span>
+                            </div>
+                            <div
+                              className="flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
-                                className="text-purple-400 underline"
                                 onClick={() => {
-                                  resetLessonForm();
-                                  setLessonSectionId(sec.id);
-                                  setShowLessonModal(true);
+                                  setEditingSectionId(sec.id);
+                                  setSecTitle(sec.title);
+                                  setShowSectionModal(true);
                                 }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
                               >
-                                Add one
+                                <Edit className="size-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSection(sec.id)}
+                                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition"
+                              >
+                                <Trash2 className="size-3.5" />
                               </button>
                             </div>
-                          ) : (
-                            (sec.lessons ?? [])
-                              .sort((a, b) => a.position - b.position)
-                              .map((lesson) => (
-                                <div
-                                  key={lesson.id}
-                                  className="flex items-center justify-between px-6 py-3 hover:bg-white/3 transition"
-                                >
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <Video className="size-4 text-purple-400 shrink-0" />
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-medium truncate">{lesson.title}</p>
-                                      <div className="flex items-center gap-2 mt-0.5">
-                                        {lesson.duration && (
-                                          <span className="text-xs text-muted-foreground">
-                                            {lesson.duration}
-                                          </span>
-                                        )}
-                                        {lesson.youtube_video_id ? (
-                                          <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
-                                            ▶ {lesson.youtube_video_id}
-                                          </span>
-                                        ) : (
-                                          <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
-                                            No video
-                                          </span>
-                                        )}
-                                        {lesson.is_free ? (
-                                          <span className="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                                            <Eye className="size-2.5" /> Free Preview
-                                          </span>
-                                        ) : (
-                                          <span className="text-xs text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                                            <EyeOff className="size-2.5" /> Paid
-                                          </span>
-                                        )}
+                          </div>
+
+                          {/* Lessons List */}
+                          {expandedSections[sec.id] && (
+                            <div className="border-t border-slate-100 divide-y divide-slate-100 bg-slate-50/20">
+                              {(sec.lessons ?? []).length === 0 ? (
+                                <div className="px-6 py-5 text-sm text-slate-500">
+                                  No lessons yet.{" "}
+                                  <button
+                                    className="text-purple-600 font-bold underline cursor-pointer"
+                                    onClick={() => {
+                                      resetLessonForm();
+                                      setLessonSectionId(sec.id);
+                                      setShowLessonModal(true);
+                                    }}
+                                  >
+                                    Add one
+                                  </button>
+                                </div>
+                              ) : (
+                                (sec.lessons ?? [])
+                                  .sort((a, b) => a.position - b.position)
+                                  .map((lesson) => (
+                                    <div
+                                      key={lesson.id}
+                                      className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 transition"
+                                    >
+                                      <div className="flex items-center gap-3 min-w-0">
+                                        <Video className="size-4 text-purple-600 shrink-0" />
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-bold text-slate-800 truncate">
+                                            {lesson.title}
+                                          </p>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                            {lesson.duration && (
+                                              <span className="text-xs text-slate-500 font-semibold">
+                                                {lesson.duration}
+                                              </span>
+                                            )}
+                                            {lesson.youtube_video_id ? (
+                                              <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-bold">
+                                                ▶ {lesson.youtube_video_id}
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-bold">
+                                                No video
+                                              </span>
+                                            )}
+                                            {lesson.is_free ? (
+                                              <span className="text-[10px] text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                                                <Eye className="size-2.5" /> Free Preview
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-purple-700 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                                                <EyeOff className="size-2.5" /> Paid
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                          onClick={() => {
+                                            setEditingLessonId(lesson.id);
+                                            setLessonSectionId(lesson.section_id);
+                                            setLesTitle(lesson.title);
+                                            setLesVideoId(lesson.youtube_video_id ?? "");
+                                            setLesDuration(lesson.duration ?? "");
+                                            setLesDescription(lesson.description ?? "");
+                                            setLesIsFree(lesson.is_free);
+                                            setShowLessonModal(true);
+                                          }}
+                                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                        >
+                                          <Edit className="size-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteLesson(lesson.id)}
+                                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                        </button>
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => {
-                                        setEditingLessonId(lesson.id);
-                                        setLessonSectionId(lesson.section_id);
-                                        setLesTitle(lesson.title);
-                                        setLesVideoId(lesson.youtube_video_id ?? "");
-                                        setLesDuration(lesson.duration ?? "");
-                                        setLesDescription(lesson.description ?? "");
-                                        setLesIsFree(lesson.is_free);
-                                        setShowLessonModal(true);
-                                      }}
-                                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10"
-                                    >
-                                      <Edit className="size-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteLesson(lesson.id)}
-                                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"
-                                    >
-                                      <Trash2 className="size-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))
+                                  ))
+                              )}
+                              <div className="px-6 py-3">
+                                <button
+                                  onClick={() => {
+                                    resetLessonForm();
+                                    setLessonSectionId(sec.id);
+                                    setShowLessonModal(true);
+                                  }}
+                                  className="text-xs text-purple-600 hover:text-purple-700 flex items-center gap-1.5 transition font-bold cursor-pointer"
+                                >
+                                  <Plus className="size-3" /> Add lesson to this section
+                                </button>
+                              </div>
+                            </div>
                           )}
-                          <div className="px-6 py-3">
-                            <button
-                              onClick={() => {
-                                resetLessonForm();
-                                setLessonSectionId(sec.id);
-                                setShowLessonModal(true);
-                              }}
-                              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1.5 transition"
-                            >
-                              <Plus className="size-3" /> Add lesson to this section
-                            </button>
-                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -2657,8 +2864,103 @@ function AdminDashboardPage() {
               )}
             </div>
           )}
-        </div>
-      </main>
+
+          {/* TAB 6: ADMINS MANAGEMENT (SUPER ADMIN ONLY) */}
+          {activeTab === "admins" && isSuperAdmin && (
+            <div className="mt-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-display font-bold text-xl">Admins Management</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Assign other registered users to be site administrators, or revoke their backend
+                    access.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setAdminEmail("");
+                    setShowAdminModal(true);
+                  }}
+                  className="btn-gradient text-xs inline-flex items-center gap-1.5"
+                >
+                  <UserPlus className="size-3.5" /> Add New Admin
+                </button>
+              </div>
+
+              <div className="surface-card rounded-3xl overflow-hidden border border-border shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-card/50 border-b border-border text-xs uppercase text-muted-foreground">
+                        <th className="py-3.5 px-4 font-semibold">Admin</th>
+                        <th className="py-3.5 px-4 font-semibold">Email</th>
+                        <th className="py-3.5 px-4 font-semibold">Role</th>
+                        <th className="py-3.5 px-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {adminsList.map((adm) => (
+                        <tr key={adm.id} className="hover:bg-white/[0.02] transition">
+                          <td className="py-4 px-4 flex items-center gap-3">
+                            {adm.avatar_url ? (
+                              <img
+                                src={adm.avatar_url}
+                                alt={adm.full_name || "Admin"}
+                                className="size-10 rounded-full object-cover border border-border"
+                              />
+                            ) : (
+                              <div className="size-10 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-sm flex items-center justify-center">
+                                {(adm.full_name || "A")[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-foreground">
+                                {adm.full_name || "Admin User"}
+                              </div>
+                              <div className="text-[11px] text-muted-foreground font-mono">
+                                ID: {adm.user_id ? adm.user_id.slice(0, 8) + "..." : "System"}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 font-mono text-xs text-muted-foreground font-semibold">
+                            {adm.email}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                                adm.email === "saifulalamcse@gmail.com"
+                                  ? "bg-purple-500/10 text-purple-400 border-purple-500/20 font-extrabold"
+                                  : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                              }`}
+                            >
+                              {adm.email === "saifulalamcse@gmail.com" ? "Super Admin" : "Admin"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
+                            {adm.email !== "saifulalamcse@gmail.com" ? (
+                              <button
+                                onClick={() => handleRevokeAdmin(adm.user_id, adm.email)}
+                                className="px-3 py-1.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition text-xs font-semibold cursor-pointer"
+                                title="Revoke Admin Access"
+                              >
+                                <Trash2 className="size-3.5 inline mr-1" /> Revoke
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic select-none mr-3">
+                                Owner (Locked)
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* MODAL: ADD / EDIT SECTION */}
       {showSectionModal && (
@@ -3986,6 +4288,202 @@ function AdminDashboardPage() {
                 >
                   {savingCustomer && <Loader2 className="size-4 animate-spin" />}
                   {editingCustomerId ? "Update Customer" : "Save Customer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: CUSTOMER DETAILS ==================== */}
+      {showCustomerDetailsModal && selectedCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in text-xs">
+          <div className="bg-white w-full max-w-2xl p-6 rounded-3xl border border-slate-200 shadow-2xl relative max-h-[85vh] flex flex-col text-slate-800">
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowCustomerDetailsModal(false);
+                setSelectedCustomer(null);
+              }}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 transition p-1 cursor-pointer"
+            >
+              <X className="size-5" />
+            </button>
+
+            {/* Header info */}
+            <div className="flex items-start gap-4 pb-5 border-b border-slate-100 shrink-0">
+              {selectedCustomer.avatar_url ? (
+                <img
+                  src={selectedCustomer.avatar_url}
+                  alt={selectedCustomer.full_name || "User"}
+                  className="size-16 rounded-2xl object-cover border border-slate-200 shadow-xs"
+                />
+              ) : (
+                <div className="size-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-600 font-bold text-xl flex items-center justify-center">
+                  {(selectedCustomer.full_name || "U")[0].toUpperCase()}
+                </div>
+              )}
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-xl text-slate-800">
+                  {selectedCustomer.full_name || "Unnamed Student"}
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {selectedCustomer.email || "No email"}
+                </p>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  User ID: <span className="select-all">{selectedCustomer.id}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto py-5 space-y-5 text-xs">
+              {/* Bio/Note Section */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <h4 className="font-semibold text-slate-600 mb-1.5 uppercase tracking-wider text-[10px]">
+                  Bio / Student Note
+                </h4>
+                <p className="text-slate-700 leading-relaxed text-sm italic">
+                  {selectedCustomer.bio || "No student bio or admin note added."}
+                </p>
+              </div>
+
+              {/* Purchase History Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-slate-600 uppercase tracking-wider text-[10px]">
+                    Enrolled Courses & Purchases
+                  </h4>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                    {orders.filter((o) => o.user_id === selectedCustomer.id).length} Active
+                    Enrollments
+                  </span>
+                </div>
+
+                <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white">
+                  {orders.filter((o) => o.user_id === selectedCustomer.id).length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 font-medium">
+                      This student has not purchased any courses yet.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase text-[9px]">
+                            <th className="py-2.5 px-4 font-bold">Course</th>
+                            <th className="py-2.5 px-4 font-bold">Price/Plan</th>
+                            <th className="py-2.5 px-4 font-bold">Status</th>
+                            <th className="py-2.5 px-4 font-bold">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {orders
+                            .filter((o) => o.user_id === selectedCustomer.id)
+                            .map((ord) => (
+                              <tr key={ord.id} className="hover:bg-slate-50/50">
+                                <td className="py-3 px-4 font-bold text-slate-800">
+                                  {ord.course_title}
+                                </td>
+                                <td className="py-3 px-4 font-mono text-slate-600">{ord.plan}</td>
+                                <td className="py-3 px-4">
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
+                                      ord.status === "active" || ord.status === "completed"
+                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                        : ord.status === "pending"
+                                          ? "bg-amber-50 text-amber-700 border-amber-100"
+                                          : "bg-red-50 text-red-700 border-red-100"
+                                    }`}
+                                  >
+                                    {ord.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-slate-500 font-mono">
+                                  {ord.created_at
+                                    ? new Date(ord.created_at).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "short",
+                                        day: "numeric",
+                                      })
+                                    : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="pt-4 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <button
+                onClick={() => {
+                  setShowCustomerDetailsModal(false);
+                  setSelectedCustomer(null);
+                }}
+                className="btn-gradient text-xs px-5 py-2 rounded-full cursor-pointer"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== MODAL: ADD ADMIN (SUPER ADMIN ONLY) ==================== */}
+      {showAdminModal && isSuperAdmin && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm grid place-items-center p-4">
+          <div className="bg-background border border-border w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => {
+                setShowAdminModal(false);
+                setAdminEmail("");
+              }}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-muted-foreground cursor-pointer"
+            >
+              <X className="size-5" />
+            </button>
+            <h3 className="font-display font-bold text-xl mb-4 text-foreground">Add New Admin</h3>
+            <form onSubmit={handleAddAdmin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Registered User Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="e.g. user@gmail.com"
+                  className="w-full bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1.5 leading-normal">
+                  Note: The user must already have a registered account on the platform to be added
+                  as an admin.
+                </p>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminModal(false);
+                    setAdminEmail("");
+                  }}
+                  className="btn-outline-pill text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAdmin}
+                  className="btn-gradient text-xs inline-flex items-center gap-2"
+                >
+                  {savingAdmin && <Loader2 className="size-4 animate-spin" />}
+                  Assign Admin Role
                 </button>
               </div>
             </form>

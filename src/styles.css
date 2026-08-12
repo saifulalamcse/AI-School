@@ -46,30 +46,30 @@
 :root {
   --radius: 1rem;
 
-  /* Dark-first palette (site is dark by default) */
-  --background: oklch(0.08 0.01 280);
-  --foreground: oklch(0.98 0.005 260);
-  --card: oklch(0.12 0.015 280);
-  --card-foreground: oklch(0.98 0.005 260);
-  --popover: oklch(0.12 0.015 280);
-  --popover-foreground: oklch(0.98 0.005 260);
+  /* Light-first palette (#faf9f6 prompt library color) */
+  --background: #faf9f6;
+  --foreground: oklch(0.15 0.02 280);
+  --card: #ffffff;
+  --card-foreground: oklch(0.15 0.02 280);
+  --popover: #ffffff;
+  --popover-foreground: oklch(0.15 0.02 280);
   --primary: oklch(0.65 0.24 320);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.18 0.02 280);
-  --secondary-foreground: oklch(0.98 0.005 260);
-  --muted: oklch(0.18 0.02 280);
-  --muted-foreground: oklch(0.68 0.02 270);
-  --accent: oklch(0.2 0.03 300);
-  --accent-foreground: oklch(0.98 0.005 260);
+  --secondary: #f4f2eb;
+  --secondary-foreground: oklch(0.15 0.02 280);
+  --muted: #eae7dd;
+  --muted-foreground: oklch(0.35 0.03 260);
+  --accent: #f0ede3;
+  --accent-foreground: oklch(0.15 0.02 280);
   --destructive: oklch(0.62 0.24 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.12);
   --ring: oklch(0.65 0.24 320);
 
-  --surface: oklch(0.11 0.015 280);
-  --surface-2: oklch(0.15 0.02 285);
-  --cream: oklch(0.97 0.012 85);
+  --surface: #ffffff;
+  --surface-2: #f7f6f2;
+  --cream: #faf9f6;
 
   --brand-purple: oklch(0.62 0.24 300);
   --brand-pink: oklch(0.68 0.26 5);

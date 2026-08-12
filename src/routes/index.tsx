@@ -87,7 +87,7 @@ function Home() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-background pt-32 pb-24 lg:py-40">
+    <section className="relative overflow-hidden bg-background pt-24 pb-12 lg:pt-28 lg:pb-16">
       {/* Space grid background effect */}
       <img
         src={heroSpace}
@@ -108,10 +108,10 @@ function Hero() {
           <h1 className="font-display font-bold text-5xl md:text-7xl leading-none tracking-tight">
             <span className="gradient-text">AI</span> for You.
           </h1>
-          <h2 className="font-display font-semibold text-2xl md:text-3xl text-white">
-            Learn<span className="text-purple-500">.</span> Build
-            <span className="text-pink-500">.</span> Succeed
-            <span className="text-amber-500">.</span>
+          <h2 className="font-display font-bold text-2xl md:text-3xl text-neutral-900">
+            Learn<span className="text-purple-600">.</span> Build
+            <span className="text-pink-600">.</span> Succeed
+            <span className="text-amber-600">.</span>
           </h2>
           <p className="max-w-md text-base md:text-lg text-muted-foreground">
             Practical AI courses designed for creators, professionals, and future-builders.
@@ -126,26 +126,26 @@ function Hero() {
           </div>
 
           {/* Key Points */}
-          <div className="pt-8 grid grid-cols-3 gap-4 border-t border-white/10 max-w-lg">
+          <div className="pt-8 grid grid-cols-3 gap-4 border-t border-neutral-300 max-w-lg">
             <div className="flex items-start gap-2">
-              <GraduationCap className="size-5 text-purple-400 shrink-0 mt-0.5" />
+              <GraduationCap className="size-5 text-purple-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-sm text-white">Learn</h4>
-                <p className="text-xs text-muted-foreground">Step-by-step</p>
+                <h4 className="font-bold text-sm text-neutral-900">Learn</h4>
+                <p className="text-xs text-neutral-600 font-semibold">Step-by-step</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <Rocket className="size-5 text-pink-400 shrink-0 mt-0.5" />
+              <Rocket className="size-5 text-pink-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-sm text-white">Apply</h4>
-                <p className="text-xs text-muted-foreground">Real-world Skills</p>
+                <h4 className="font-bold text-sm text-neutral-900">Apply</h4>
+                <p className="text-xs text-neutral-600 font-semibold">Real-world Skills</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <Award className="size-5 text-amber-400 shrink-0 mt-0.5" />
+              <Award className="size-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-sm text-white">Achieve</h4>
-                <p className="text-xs text-muted-foreground">Greater Tomorrow</p>
+                <h4 className="font-bold text-sm text-neutral-900">Achieve</h4>
+                <p className="text-xs text-neutral-600 font-semibold">Greater Tomorrow</p>
               </div>
             </div>
           </div>
@@ -256,7 +256,7 @@ function PromptLibrary() {
   }, []);
 
   return (
-    <section className="section-light py-20">
+    <section className="section-light pt-10 pb-16">
       <div className="mx-auto max-w-7xl px-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -327,7 +327,7 @@ function PromptLibrary() {
 
 function SlowWork() {
   return (
-    <section className="relative py-24 grid-glow">
+    <section className="relative py-16 grid-glow">
       <div className="mx-auto max-w-7xl px-5">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="font-display font-bold text-4xl md:text-6xl">
@@ -363,7 +363,7 @@ function SlowWork() {
 function NewsPreview({ newsList }: { newsList: DynamicNewsArticle[] }) {
   if (newsList.length === 0) return null;
   return (
-    <section className="section-light py-20">
+    <section className="section-light py-16">
       <div className="mx-auto max-w-7xl px-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -420,7 +420,7 @@ function LearningMaterials({ courses }: { courses: DynamicCourse[] }) {
   if (courses.length === 0) return null;
 
   return (
-    <section className="py-24">
+    <section className="py-16">
       <div className="mx-auto max-w-6xl px-5">
         <div className="text-center max-w-2xl mx-auto">
           <h2 className="font-display font-bold text-4xl md:text-5xl">
@@ -449,27 +449,29 @@ function LearningMaterials({ courses }: { courses: DynamicCourse[] }) {
                     <span className="eyebrow gradient-text border-primary/30">
                       {c.status === "active" ? "Featured Course" : c.status}
                     </span>
-                    <span className="text-xs font-semibold text-neutral-400">
+                    <span className="text-xs font-bold text-neutral-700">
                       ৳{c.price} / {c.period}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-display font-bold text-2xl md:text-3xl text-white group-hover:text-purple-200 transition-colors">
+                  <h3 className="mt-3 font-display font-extrabold text-2xl md:text-3xl text-neutral-900 group-hover:text-purple-600 transition-colors">
                     {c.title}
                   </h3>
                   {c.subtitle && (
-                    <p className="mt-2 text-sm text-neutral-400 line-clamp-2">{c.subtitle}</p>
+                    <p className="mt-2 text-sm text-neutral-700 font-semibold line-clamp-2">
+                      {c.subtitle}
+                    </p>
                   )}
                   <div className="mt-6 flex flex-wrap gap-2">
                     {pills.map((p) => (
                       <span
                         key={p}
-                        className="text-xs px-3 py-1.5 rounded-full border border-border bg-white/5 text-neutral-300 font-medium"
+                        className="text-xs px-3 py-1.5 rounded-full border border-neutral-300 bg-neutral-100 text-neutral-800 font-bold"
                       >
                         {p}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-6 gradient-text font-semibold flex items-center gap-1.5">
+                  <div className="mt-6 gradient-text font-bold flex items-center gap-1.5">
                     Explore Course →
                   </div>
                 </div>
@@ -505,7 +507,7 @@ function LearningMaterials({ courses }: { courses: DynamicCourse[] }) {
 function Testimonials({ experts }: { experts: DynamicExpert[] }) {
   if (experts.length === 0) return null;
   return (
-    <section id="experts" className="section-light py-20">
+    <section id="experts" className="section-light py-16">
       <div className="mx-auto max-w-7xl px-5">
         <h2 className="text-center font-display font-bold text-4xl md:text-5xl text-neutral-900">
           Experts Recommending <span className="gradient-text">AI School</span>
@@ -544,7 +546,7 @@ function Testimonials({ experts }: { experts: DynamicExpert[] }) {
 
 function Workshops() {
   return (
-    <section className="py-24">
+    <section className="py-16">
       <div className="mx-auto max-w-6xl px-5">
         <div className="text-center">
           <div className="eyebrow">Enterprise & Institutions</div>
@@ -569,7 +571,7 @@ function Workshops() {
 
 function Newsletter() {
   return (
-    <section className="py-20">
+    <section className="py-16">
       <div className="mx-auto max-w-5xl px-5">
         <div className="surface-card grid md:grid-cols-2 items-center gap-8 p-8 md:p-12 relative overflow-hidden">
           <div className="absolute -right-20 -top-20 size-72 rounded-full gradient-bg opacity-20 blur-3xl" />

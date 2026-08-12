@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { course as fallbackCourse, testimonials } from "@/lib/site-data";
@@ -33,23 +34,24 @@ function CoursePage() {
   const [courseData, setCourseData] = useState<DynamicCourse | null>(null);
 
   useEffect(() => {
+    setCourseData(null);
     fetchCourseBySlug(slug).then((data) => setCourseData(data));
   }, [slug]);
 
-  const activeCourse = courseData || {
-    id: "1",
-    slug: fallbackCourse.slug,
-    title: fallbackCourse.title,
-    subtitle: fallbackCourse.subtitle,
-    description: "Master Creative design with AI — 25+ AI Tools Use Cases Covered.",
-    price: "1,900",
-    period: "month",
-    status: "active",
-    thumbnail_url: null,
-    stats: [...fallbackCourse.stats],
-    topics: [...fallbackCourse.topics],
-    inside: [...fallbackCourse.inside],
-  };
+  if (!courseData) {
+    return (
+      <div className="min-h-screen bg-[#030014] text-white">
+        <Header />
+        <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-5">
+          <Loader2 className="size-10 animate-spin text-purple-500 mb-4" />
+          <p className="text-sm text-neutral-400 animate-pulse">Loading course masterclass...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const activeCourse = courseData;
 
   return (
     <div className="min-h-screen">

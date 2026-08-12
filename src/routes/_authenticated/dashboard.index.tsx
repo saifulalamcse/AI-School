@@ -23,6 +23,7 @@ type SavedPrompt = {
   prompt_title: string;
   category: string | null;
   tool: string | null;
+  prompt_id?: string | null;
 };
 
 const tabs = [
@@ -64,7 +65,7 @@ function DashboardPage() {
     if (!user) return;
     let active = true;
     (async () => {
-      const [{ data: e }, { data: s }, allCourses] = await Promise.all([
+      const [{ data: e }, { data: s }, allCourses, { data: allPrompts }] = await Promise.all([
         supabase
           .from("enrollments")
           .select("*")
@@ -76,10 +77,22 @@ function DashboardPage() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         fetchCourses().catch(() => []),
+        supabase
+          .from("prompts")
+          .select("id, title")
+          .neq("category", "AI News")
+          .then((res) => ({ data: res.data || [] }))
+          .catch(() => ({ data: [] })),
       ]);
       if (!active) return;
 
       const courseMap = new Map((allCourses || []).map((c) => [c.slug, c]));
+      const promptMap = new Map(
+        ((allPrompts as { id: string; title: string }[]) || []).map((p) => [
+          p.title.toLowerCase().trim(),
+          p.id,
+        ]),
+      );
 
       const enrichedEnrollments = ((e as Enrollment[]) ?? []).map((en) => {
         const matched = courseMap.get(en.course_slug);
@@ -90,8 +103,15 @@ function DashboardPage() {
         };
       });
 
+      const enrichedSaved = ((s as SavedPrompt[]) ?? []).map((sp) => {
+        return {
+          ...sp,
+          prompt_id: promptMap.get(sp.prompt_title.toLowerCase().trim()) || null,
+        };
+      });
+
       setEnrollments(enrichedEnrollments);
-      setSaved((s as SavedPrompt[]) ?? []);
+      setSaved(enrichedSaved);
       setLoading(false);
     })();
     return () => {
@@ -263,7 +283,19 @@ function PromptsTab({ saved, onRemove }: { saved: SavedPrompt[]; onRemove: (id: 
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
             {p.category} · {p.tool}
           </span>
-          <h3 className="mt-2 font-display font-semibold">{p.prompt_title}</h3>
+          {p.prompt_id ? (
+            <Link
+              to="/prompt-library/$id"
+              params={{ id: p.prompt_id }}
+              className="mt-2 font-display font-semibold hover:text-purple-400 transition block text-left hover:underline cursor-pointer"
+            >
+              {p.prompt_title}
+            </Link>
+          ) : (
+            <h3 className="mt-2 font-display font-semibold text-muted-foreground">
+              {p.prompt_title}
+            </h3>
+          )}
           <button
             onClick={() => onRemove(p.id)}
             className="mt-4 text-sm text-muted-foreground hover:text-foreground transition"

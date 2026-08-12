@@ -72,98 +72,132 @@ function AllCoursesPage() {
 
         {/* Featured Banner Course (Matches Reference UI) */}
         <section className="mx-auto max-w-6xl px-5 mt-14">
-          <div className="relative rounded-3xl overflow-hidden border border-border bg-gradient-to-br from-neutral-900/90 via-neutral-900 to-purple-950/40 p-8 md:p-12 shadow-2xl">
-            <div className="grid md:grid-cols-12 gap-8 items-center">
-              <div className="md:col-span-6 relative">
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
-                  <img
-                    src={featuredCourse?.thumbnail_url || personaCreator}
-                    alt="Creative AI Community preview"
-                    className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6">
-                    <div>
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold gradient-bg text-white shadow-lg">
-                        Featured Community
-                      </span>
-                      <h3 className="mt-2 font-display font-bold text-2xl text-white">
-                        {featuredCourse?.title || course.title}
-                      </h3>
-                    </div>
+          {loading ? (
+            <div className="relative rounded-3xl overflow-hidden border border-border bg-gradient-to-br from-neutral-900/90 via-neutral-900 to-purple-950/40 p-8 md:p-12 shadow-2xl animate-pulse">
+              <div className="grid md:grid-cols-12 gap-8 items-center">
+                <div className="md:col-span-6 relative">
+                  <div className="aspect-[4/3] w-full rounded-2xl bg-neutral-800/80 border border-white/5 shadow-2xl" />
+                </div>
+                <div className="md:col-span-6 space-y-6">
+                  <div className="space-y-3">
+                    <div className="h-6 w-28 bg-neutral-800/80 rounded-full" />
+                    <div className="h-10 w-3/4 bg-neutral-800/80 rounded-xl" />
+                    <div className="h-4 w-full bg-neutral-800/80 rounded-lg" />
+                    <div className="h-4 w-5/6 bg-neutral-800/80 rounded-lg" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-6 w-16 bg-neutral-800/80 rounded-lg" />
+                    <div className="h-6 w-20 bg-neutral-800/80 rounded-lg" />
+                    <div className="h-6 w-16 bg-neutral-800/80 rounded-lg" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="h-12 bg-neutral-800/80 rounded-xl" />
+                    <div className="h-12 bg-neutral-800/80 rounded-xl" />
+                    <div className="h-12 bg-neutral-800/80 rounded-xl" />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-10 w-36 bg-neutral-800/80 rounded-full" />
+                    <div className="h-10 w-32 bg-neutral-800/80 rounded-full" />
                   </div>
                 </div>
               </div>
-
-              <div className="md:col-span-6 space-y-6">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    <Sparkles className="size-3.5" /> Best of 2026
-                  </span>
-                  <h2 className="mt-3 font-display font-bold text-3xl md:text-4xl text-white leading-tight">
-                    {featuredCourse?.title || "Master Creative Design with AI"}
-                  </h2>
-                  <p className="mt-2 text-neutral-300 text-sm md:text-base">
-                    {featuredCourse?.subtitle ||
-                      "25+ AI Tools Use Cases Covered — text-to-video, composite design, UGC ads and landing pages."}
-                  </p>
-                </div>
-
-                {/* Badges / Tools */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {(featuredCourse?.tools && featuredCourse.tools.length > 0
-                    ? featuredCourse.tools
-                    : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"]
-                  ).map((t) => (
-                    <span
-                      key={t}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-neutral-300"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Stats strip */}
-                <div className="grid grid-cols-3 gap-3 pt-2">
-                  {(featuredCourse?.stats && featuredCourse.stats.length > 0
-                    ? featuredCourse.stats
-                    : [
-                        { label: "24+ Hours", sub: "Course Duration" },
-                        { label: "Live Classes", sub: "Weekly & Monthly" },
-                        { label: "Lifetime", sub: "Community Access" },
-                      ]
-                  )
-                    .slice(0, 3)
-                    .map((st, i) => (
-                      <div
-                        key={st.label + i}
-                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-center"
-                      >
-                        <div className="font-display font-bold text-lg text-white">{st.label}</div>
-                        <div className="text-[11px] text-neutral-400">{st.sub}</div>
+            </div>
+          ) : (
+            <div className="relative rounded-3xl overflow-hidden border border-border bg-gradient-to-br from-neutral-900/90 via-neutral-900 to-purple-950/40 p-8 md:p-12 shadow-2xl">
+              <div className="grid md:grid-cols-12 gap-8 items-center">
+                <div className="md:col-span-6 relative">
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
+                    <img
+                      src={featuredCourse?.thumbnail_url || personaCreator}
+                      alt="Creative AI Community preview"
+                      className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6">
+                      <div>
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold gradient-bg text-white shadow-lg">
+                          Featured Community
+                        </span>
+                        <h3 className="mt-2 font-display font-bold text-2xl text-white">
+                          {featuredCourse?.title}
+                        </h3>
                       </div>
-                    ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-2 flex flex-wrap gap-3">
-                  <Link
-                    to="/courses/$slug"
-                    params={{ slug: featuredCourse?.slug || "creative-ai-community" }}
-                    className="btn-gradient inline-flex items-center gap-2"
-                  >
-                    Explore Course <ArrowRight className="size-4" />
-                  </Link>
-                  <Link
-                    to="/checkout/$slug"
-                    params={{ slug: featuredCourse?.slug || "creative-ai-community" }}
-                    className="btn-outline-pill text-sm"
-                  >
-                    Join Community
-                  </Link>
+                <div className="md:col-span-6 space-y-6">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      <Sparkles className="size-3.5" /> Best of 2026
+                    </span>
+                    <h2 className="mt-3 font-display font-bold text-3xl md:text-4xl text-white leading-tight">
+                      {featuredCourse?.title || "Master Creative Design with AI"}
+                    </h2>
+                    <p className="mt-2 text-neutral-300 text-sm md:text-base">
+                      {featuredCourse?.subtitle ||
+                        "25+ AI Tools Use Cases Covered — text-to-video, composite design, UGC ads and landing pages."}
+                    </p>
+                  </div>
+
+                  {/* Badges / Tools */}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {(featuredCourse?.tools && featuredCourse.tools.length > 0
+                      ? featuredCourse.tools
+                      : ["ChatGPT", "Midjourney", "Claude", "Runway", "ElevenLabs", "Sora"]
+                    ).map((t) => (
+                      <span
+                        key={t}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-neutral-300"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Stats strip */}
+                  <div className="grid grid-cols-3 gap-3 pt-2">
+                    {(featuredCourse?.stats && featuredCourse.stats.length > 0
+                      ? featuredCourse.stats
+                      : [
+                          { label: "24+ Hours", sub: "Course Duration" },
+                          { label: "Live Classes", sub: "Weekly & Monthly" },
+                          { label: "Lifetime", sub: "Community Access" },
+                        ]
+                    )
+                      .slice(0, 3)
+                      .map((st, i) => (
+                        <div
+                          key={st.label + i}
+                          className="p-3 rounded-xl bg-white/5 border border-white/10 text-center"
+                        >
+                          <div className="font-display font-bold text-lg text-white">
+                            {st.label}
+                          </div>
+                          <div className="text-[11px] text-neutral-400">{st.sub}</div>
+                        </div>
+                      ))}
+                  </div>
+
+                  <div className="pt-2 flex flex-wrap gap-3">
+                    <Link
+                      to="/courses/$slug"
+                      params={{ slug: featuredCourse?.slug || "creative-ai-community" }}
+                      className="btn-gradient inline-flex items-center gap-2"
+                    >
+                      Explore Course <ArrowRight className="size-4" />
+                    </Link>
+                    <Link
+                      to="/checkout/$slug"
+                      params={{ slug: featuredCourse?.slug || "creative-ai-community" }}
+                      className="btn-outline-pill text-sm"
+                    >
+                      Join Community
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* All Courses Grid */}
