@@ -40,11 +40,13 @@ function CoursePage() {
 
   if (!courseData) {
     return (
-      <div className="min-h-screen bg-[#030014] text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <Header />
         <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-5">
           <Loader2 className="size-10 animate-spin text-purple-500 mb-4" />
-          <p className="text-sm text-neutral-400 animate-pulse">Loading course masterclass...</p>
+          <p className="text-sm text-neutral-600 font-medium animate-pulse">
+            Loading course masterclass...
+          </p>
         </div>
         <Footer />
       </div>
@@ -102,7 +104,7 @@ function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
           ).map((tool) => (
             <span
               key={tool}
-              className="px-3 py-1 rounded-xl text-xs font-semibold bg-white/5 border border-white/10 text-neutral-300 backdrop-blur-md"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-neutral-100/90 border border-neutral-300 text-neutral-800 shadow-xs"
             >
               {tool}
             </span>
@@ -113,7 +115,7 @@ function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
           {(activeCourse.stats || fallbackCourse.stats).map((s, idx) => (
             <div key={s.label + idx} className="surface-card p-4 text-left">
               <div className="font-display font-bold text-xl gradient-text">{s.label}</div>
-              <div className="text-xs text-muted-foreground mt-1">{s.sub}</div>
+              <div className="text-xs text-neutral-600 font-medium mt-1">{s.sub}</div>
             </div>
           ))}
         </div>
