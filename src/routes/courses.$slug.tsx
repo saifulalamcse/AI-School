@@ -111,9 +111,12 @@ function CourseHero({ activeCourse }: { activeCourse: DynamicCourse }) {
           ))}
         </div>
 
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+        <div className="mt-8 flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
           {(activeCourse.stats || fallbackCourse.stats).map((s, idx) => (
-            <div key={s.label + idx} className="surface-card p-4 text-left">
+            <div
+              key={s.label + idx}
+              className="surface-card p-4 text-center min-w-[170px] sm:min-w-[190px] flex-1 sm:flex-initial"
+            >
               <div className="font-display font-bold text-xl gradient-text">{s.label}</div>
               <div className="text-xs text-neutral-600 font-medium mt-1">{s.sub}</div>
             </div>
