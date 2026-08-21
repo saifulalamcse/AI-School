@@ -230,11 +230,11 @@ function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 flex items-start gap-3">
-                    <ShieldCheck className="size-5 shrink-0 text-purple-400 mt-0.5" />
+                  <div className="mt-6 p-4 rounded-2xl bg-purple-50 border border-purple-200 text-xs text-neutral-700 flex items-start gap-3">
+                    <ShieldCheck className="size-5 shrink-0 text-purple-600 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-foreground">100% Satisfaction Guarantee</p>
-                      <p className="mt-0.5 opacity-90">
+                      <p className="font-bold text-neutral-900">100% Satisfaction Guarantee</p>
+                      <p className="mt-0.5 text-neutral-600 font-medium leading-relaxed">
                         Access all weekly lessons, community Discord, live Q&A sessions, and prompt
                         templates immediately after enrollment.
                       </p>
@@ -248,7 +248,7 @@ function CheckoutPage() {
                 <div className="surface-card p-6 md:p-8">
                   <h2 className="font-display font-bold text-2xl mb-6 flex items-center justify-between">
                     <span>Checkout & Payment</span>
-                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
                       <Lock className="size-3.5" /> 256-bit SSL Secure
                     </span>
                   </h2>
@@ -256,18 +256,20 @@ function CheckoutPage() {
                   <form onSubmit={handleEnrollment} className="space-y-6">
                     {/* Account Information */}
                     <div className="space-y-3">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700">
                         Account Details
                       </label>
                       <div className="p-4 rounded-2xl bg-card border border-border space-y-1.5">
-                        <div className="text-sm font-semibold text-foreground">{name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{email}</div>
+                        <div className="text-sm font-bold text-neutral-900">{name}</div>
+                        <div className="text-xs text-neutral-600 font-mono font-medium">
+                          {email}
+                        </div>
                       </div>
                     </div>
 
                     {/* Payment Method Selector */}
                     <div className="space-y-3">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700">
                         Select Payment Method
                       </label>
                       <div className="grid grid-cols-3 gap-3">
@@ -277,11 +279,13 @@ function CheckoutPage() {
                           onClick={() => setPaymentMethod("bkash")}
                           className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
                             paymentMethod === "bkash"
-                              ? "bg-pink-500/20 border-pink-500 text-white shadow-lg"
-                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                              ? "bg-pink-50 border-2 border-pink-500 text-pink-700 shadow-md ring-2 ring-pink-500/20 font-extrabold"
+                              : "bg-card border-border text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 font-semibold"
                           }`}
                         >
-                          <Wallet className="size-6 text-pink-400" />
+                          <Wallet
+                            className={`size-6 ${paymentMethod === "bkash" ? "text-pink-600" : "text-neutral-500"}`}
+                          />
                           <span className="text-xs font-bold">bKash</span>
                         </button>
 
@@ -291,11 +295,13 @@ function CheckoutPage() {
                           onClick={() => setPaymentMethod("nagad")}
                           className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
                             paymentMethod === "nagad"
-                              ? "bg-orange-500/20 border-orange-500 text-white shadow-lg"
-                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                              ? "bg-orange-50 border-2 border-orange-500 text-orange-700 shadow-md ring-2 ring-orange-500/20 font-extrabold"
+                              : "bg-card border-border text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 font-semibold"
                           }`}
                         >
-                          <Smartphone className="size-6 text-orange-400" />
+                          <Smartphone
+                            className={`size-6 ${paymentMethod === "nagad" ? "text-orange-600" : "text-neutral-500"}`}
+                          />
                           <span className="text-xs font-bold">Nagad</span>
                         </button>
 
@@ -305,11 +311,13 @@ function CheckoutPage() {
                           onClick={() => setPaymentMethod("card")}
                           className={`p-4 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 ${
                             paymentMethod === "card"
-                              ? "bg-purple-500/20 border-purple-500 text-white shadow-lg"
-                              : "bg-card border-border text-muted-foreground hover:bg-white/5"
+                              ? "bg-purple-50 border-2 border-purple-500 text-purple-700 shadow-md ring-2 ring-purple-500/20 font-extrabold"
+                              : "bg-card border-border text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 font-semibold"
                           }`}
                         >
-                          <CreditCard className="size-6 text-purple-400" />
+                          <CreditCard
+                            className={`size-6 ${paymentMethod === "card" ? "text-purple-600" : "text-neutral-500"}`}
+                          />
                           <span className="text-xs font-bold">Card / SSL</span>
                         </button>
                       </div>
@@ -318,7 +326,7 @@ function CheckoutPage() {
                     {/* Payment Details Input */}
                     {(paymentMethod === "bkash" || paymentMethod === "nagad") && (
                       <div className="space-y-2 p-4 rounded-2xl bg-card border border-border">
-                        <label className="block text-xs font-semibold text-muted-foreground">
+                        <label className="block text-xs font-bold text-neutral-800">
                           Your {paymentMethod === "bkash" ? "bKash" : "Nagad"} Account Number
                         </label>
                         <input
@@ -327,20 +335,22 @@ function CheckoutPage() {
                           value={mfsNumber}
                           onChange={(e) => setMfsNumber(e.target.value)}
                           placeholder="01700000000"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground font-mono text-sm focus:outline-none focus:border-purple-500"
+                          className="w-full px-4 py-2.5 rounded-xl border border-neutral-300 bg-background text-foreground font-mono text-sm focus:outline-none focus:border-purple-500 font-semibold"
                         />
-                        <p className="text-[11px] text-muted-foreground mt-1">
+                        <p className="text-[11px] text-neutral-600 font-medium mt-1">
                           Enter your mobile number to authorize quick payment.
                         </p>
                       </div>
                     )}
 
                     {paymentMethod === "card" && (
-                      <div className="p-4 rounded-2xl bg-card border border-border text-xs text-muted-foreground space-y-2">
-                        <p className="font-semibold text-foreground">
+                      <div className="p-4 rounded-2xl bg-card border border-border text-xs text-neutral-700 space-y-2">
+                        <p className="font-bold text-neutral-900">
                           Credit / Debit Card (SSLCommerz Gateway)
                         </p>
-                        <p>Supports Visa, Mastercard, AMEX, and all Bangladeshi Bank Cards.</p>
+                        <p className="text-neutral-600 font-medium">
+                          Supports Visa, Mastercard, AMEX, and all Bangladeshi Bank Cards.
+                        </p>
                       </div>
                     )}
 
