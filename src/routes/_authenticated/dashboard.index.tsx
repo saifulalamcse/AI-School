@@ -16,6 +16,9 @@ type Enrollment = {
   status: string;
   created_at: string;
   thumbnail_url?: string | null;
+  total_lessons?: number;
+  completed_lessons?: number;
+  progress_percent?: number;
 };
 
 type SavedPrompt = {
@@ -65,7 +68,14 @@ function DashboardPage() {
     if (!user) return;
     let active = true;
     (async () => {
-      const [{ data: e }, { data: s }, allCourses, { data: allPrompts }] = await Promise.all([
+      const [
+        { data: e },
+        { data: s },
+        allCourses,
+        { data: allPrompts },
+        { data: allSections },
+        { data: allProgress },
+      ] = await Promise.all([
         supabase
           .from("enrollments")
           .select("*")
@@ -83,6 +93,8 @@ function DashboardPage() {
           .neq("category", "AI News")
           .then((res) => ({ data: res.data || [] }))
           .catch(() => ({ data: [] })),
+        supabase.from("sections").select("id, course_slug, lessons(id)"),
+        supabase.from("lesson_progress").select("lesson_id").eq("user_id", user.id),
       ]);
       if (!active) return;
 
@@ -93,13 +105,28 @@ function DashboardPage() {
           p.id,
         ]),
       );
+      const completedSet = new Set((allProgress || []).map((p) => p.lesson_id));
+
+      type SectionItem = { id: string; course_slug: string; lessons: { id: string }[] };
+      const typedSections = (allSections as unknown as SectionItem[]) || [];
 
       const enrichedEnrollments = ((e as Enrollment[]) ?? []).map((en) => {
         const matched = courseMap.get(en.course_slug);
+
+        // Find lessons for this course
+        const courseSecs = typedSections.filter((sec) => sec.course_slug === en.course_slug);
+        const courseLessons: { id: string }[] = courseSecs.flatMap((sec) => sec.lessons || []);
+        const total = courseLessons.length;
+        const done = courseLessons.filter((l) => completedSet.has(l.id)).length;
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
         return {
           ...en,
           course_title: en.course_title || matched?.title || "AI Course",
           thumbnail_url: matched?.thumbnail_url || null,
+          total_lessons: total,
+          completed_lessons: done,
+          progress_percent: percent,
         };
       });
 
@@ -237,12 +264,24 @@ function CoursesTab({ enrollments }: { enrollments: Enrollment[] }) {
                 {e.plan} · {e.status}
               </p>
 
-              <div className="mt-4 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full gradient-bg" style={{ width: "15%" }} />
+              <div className="mt-4 h-1.5 rounded-full bg-neutral-200 overflow-hidden">
+                <div
+                  className="h-full gradient-bg transition-all duration-500"
+                  style={{ width: `${e.progress_percent || 0}%` }}
+                />
               </div>
               <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>Start learning</span>
-                <span className="font-mono text-[10px]">15% completed</span>
+                <span>
+                  {e.progress_percent === 0
+                    ? "Start learning"
+                    : e.progress_percent === 100
+                      ? "Completed 🎉"
+                      : "In progress"}
+                </span>
+                <span className="font-mono text-[10px] font-semibold text-foreground">
+                  {e.progress_percent || 0}% completed ({e.completed_lessons || 0}/
+                  {e.total_lessons || 0})
+                </span>
               </div>
             </div>
           </div>
@@ -253,7 +292,11 @@ function CoursesTab({ enrollments }: { enrollments: Enrollment[] }) {
               params={{ slug: e.course_slug }}
               className="btn-gradient w-full py-2.5 text-xs text-center block rounded-xl font-semibold"
             >
-              Continue learning →
+              {e.progress_percent === 0
+                ? "Start learning →"
+                : e.progress_percent === 100
+                  ? "Review course →"
+                  : "Continue learning →"}
             </Link>
           </div>
         </div>

@@ -133,31 +133,81 @@ function CoursePlayerPage() {
     setLoading(false);
   }
 
-  async function markComplete(lessonId: string) {
-    if (!user || completedIds.has(lessonId)) return;
+  // Auto-complete lesson when YouTube video finishes playing
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (!event.origin.includes("youtube.com")) return;
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        // YouTube PlayerState.ENDED is 0
+        if (
+          (data?.event === "onStateChange" &&
+            (data?.info === 0 || data?.info?.playerState === 0)) ||
+          data?.info === 0
+        ) {
+          if (activeLesson && !completedIds.has(activeLesson.id)) {
+            toggleComplete(activeLesson.id);
+          }
+        }
+      } catch {
+        // ignore non-json messages
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [activeLesson, completedIds, user]);
+
+  async function toggleComplete(lessonId: string, e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
+    if (!user) return;
     setCompleting(true);
-    const { error } = await supabase
-      .from("lesson_progress")
-      .upsert({ user_id: user.id, lesson_id: lessonId });
-    if (error) {
-      toast.error(error.message);
+    const isCompleted = completedIds.has(lessonId);
+
+    if (isCompleted) {
+      const { error } = await supabase
+        .from("lesson_progress")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("lesson_id", lessonId);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        const newSet = new Set(completedIds);
+        newSet.delete(lessonId);
+        setCompletedIds(newSet);
+        setSections((prev) =>
+          prev.map((sec) => ({
+            ...sec,
+            lessons: sec.lessons.map((l) => (l.id === lessonId ? { ...l, completed: false } : l)),
+          })),
+        );
+        toast.info("Lesson marked as incomplete.");
+      }
     } else {
-      const newSet = new Set(completedIds);
-      newSet.add(lessonId);
-      setCompletedIds(newSet);
-      setSections((prev) =>
-        prev.map((sec) => ({
-          ...sec,
-          lessons: sec.lessons.map((l) => (l.id === lessonId ? { ...l, completed: true } : l)),
-        })),
-      );
-      toast.success("Lesson marked as complete! 🎉");
+      const { error } = await supabase
+        .from("lesson_progress")
+        .upsert({ user_id: user.id, lesson_id: lessonId });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        const newSet = new Set(completedIds);
+        newSet.add(lessonId);
+        setCompletedIds(newSet);
+        setSections((prev) =>
+          prev.map((sec) => ({
+            ...sec,
+            lessons: sec.lessons.map((l) => (l.id === lessonId ? { ...l, completed: true } : l)),
+          })),
+        );
+        toast.success("Lesson completed! 🎉");
+      }
     }
     setCompleting(false);
   }
 
-  const totalLessons = sections.reduce((s, sec) => s + sec.lessons.length, 0);
-  const completedCount = completedIds.size;
+  const allCourseLessons = sections.flatMap((s) => s.lessons);
+  const totalLessons = allCourseLessons.length;
+  const completedCount = allCourseLessons.filter((l) => completedIds.has(l.id)).length;
   const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   if (loading) {
@@ -261,18 +311,25 @@ function CoursePlayerPage() {
                                 onClick={() => setActiveLesson(lesson)}
                                 className={`w-full flex items-start gap-2.5 p-3 text-left transition ${
                                   isActive
-                                    ? "bg-purple-500/15 text-purple-300"
-                                    : "hover:bg-white/5 text-foreground"
+                                    ? "bg-purple-500/15 text-purple-600 font-semibold"
+                                    : "hover:bg-neutral-100 text-foreground"
                                 }`}
                               >
-                                {isDone ? (
-                                  <CheckCircle2 className="size-4 text-emerald-400 shrink-0 mt-0.5" />
-                                ) : isActive ? (
-                                  <PlayCircle className="size-4 text-purple-400 shrink-0 mt-0.5" />
-                                ) : (
-                                  <Circle className="size-4 text-muted-foreground/50 shrink-0 mt-0.5" />
-                                )}
-                                <div className="min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleComplete(lesson.id, e)}
+                                  className="mt-0.5 hover:scale-110 transition shrink-0"
+                                  title={isDone ? "Mark incomplete" : "Mark complete"}
+                                >
+                                  {isDone ? (
+                                    <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                                  ) : isActive ? (
+                                    <PlayCircle className="size-4 text-purple-600 shrink-0" />
+                                  ) : (
+                                    <Circle className="size-4 text-neutral-400 shrink-0" />
+                                  )}
+                                </button>
+                                <div className="min-w-0 flex-1">
                                   <p className="text-xs font-medium leading-snug truncate">
                                     {lesson.title}
                                   </p>
@@ -316,15 +373,34 @@ function CoursePlayerPage() {
                     <iframe
                       ref={playerRef}
                       key={activeLesson.youtube_video_id}
-                      src={`https://www.youtube.com/embed/${activeLesson.youtube_video_id}?rel=0&modestbranding=1&color=white`}
+                      src={`https://www.youtube.com/embed/${activeLesson.youtube_video_id}?enablejsapi=1&origin=${typeof window !== "undefined" ? window.location.origin : ""}&rel=0&modestbranding=1`}
                       title={activeLesson.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                       className="absolute inset-0 w-full h-full"
+                      onLoad={() => {
+                        try {
+                          playerRef.current?.contentWindow?.postMessage(
+                            JSON.stringify({ event: "listening", id: 1 }),
+                            "*",
+                          );
+                          playerRef.current?.contentWindow?.postMessage(
+                            JSON.stringify({
+                              event: "command",
+                              func: "addEventListener",
+                              args: ["onStateChange"],
+                            }),
+                            "*",
+                          );
+                        } catch (err) {
+                          // PostMessage may be blocked if iframe not ready
+                          void err;
+                        }
+                      }}
                     />
                   </div>
                 ) : (
-                  <div className="w-full rounded-2xl bg-white/5 border border-border flex flex-col items-center justify-center text-center gap-3 py-20">
+                  <div className="w-full rounded-2xl bg-neutral-100 border border-border flex flex-col items-center justify-center text-center gap-3 py-20">
                     <Lock className="size-10 text-muted-foreground" />
                     <p className="text-muted-foreground text-sm">
                       Video not yet available for this lesson.
@@ -352,14 +428,19 @@ function CoursePlayerPage() {
 
                   <div className="shrink-0">
                     {completedIds.has(activeLesson.id) ? (
-                      <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold">
-                        <CheckCircle2 className="size-4" /> Completed
-                      </div>
+                      <button
+                        onClick={() => toggleComplete(activeLesson.id)}
+                        disabled={completing}
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/20 text-sm font-bold transition cursor-pointer"
+                        title="Click to mark incomplete"
+                      >
+                        <CheckCircle2 className="size-4" /> Completed ✓
+                      </button>
                     ) : (
                       <button
-                        onClick={() => markComplete(activeLesson.id)}
+                        onClick={() => toggleComplete(activeLesson.id)}
                         disabled={completing}
-                        className="btn-gradient inline-flex items-center gap-2 text-sm"
+                        className="btn-gradient inline-flex items-center gap-2 text-sm font-bold"
                       >
                         {completing ? (
                           <Loader2 className="size-4 animate-spin" />
