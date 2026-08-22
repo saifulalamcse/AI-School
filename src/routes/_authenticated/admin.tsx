@@ -1266,7 +1266,10 @@ function AdminDashboardPage() {
         if (error) throw error;
         toast.success("Customer profile updated!");
       } else {
-        const { error } = await supabase.from("profiles").insert(payload);
+        const newId =
+          typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : undefined;
+        const insertPayload = newId ? { id: newId, ...payload } : payload;
+        const { error } = await supabase.from("profiles").insert(insertPayload);
         if (error) throw error;
         toast.success("New customer profile created!");
       }
