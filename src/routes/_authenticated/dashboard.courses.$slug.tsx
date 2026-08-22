@@ -279,7 +279,7 @@ function CoursePlayerPage() {
                   return (
                     <div key={sec.id} className="rounded-xl border border-border overflow-hidden">
                       <button
-                        className="w-full flex items-center justify-between p-3 hover:bg-white/5 transition text-left"
+                        className="w-full flex items-center justify-between p-3 hover:bg-neutral-100 transition text-left"
                         onClick={() =>
                           setExpandedSections((prev) => ({
                             ...prev,
@@ -288,8 +288,8 @@ function CoursePlayerPage() {
                         }
                       >
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate">{sec.title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-sm font-bold text-neutral-900 truncate">{sec.title}</p>
+                          <p className="text-xs text-neutral-500 font-medium mt-0.5">
                             {secCompleted}/{sec.lessons.length} lessons
                           </p>
                         </div>

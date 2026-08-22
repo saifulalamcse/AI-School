@@ -118,57 +118,57 @@ export function Header() {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={6}
-                    className="w-56 bg-background/95 backdrop-blur-xl border border-border shadow-2xl p-2 rounded-2xl animate-none"
+                    className="w-56 bg-white border border-neutral-200 shadow-xl p-2 rounded-2xl animate-none"
                   >
                     <DropdownMenuLabel className="font-normal px-2 py-2">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-semibold leading-none text-foreground truncate">
+                        <p className="text-sm font-bold leading-none text-neutral-900 truncate">
                           {userName}
                         </p>
-                        <p className="text-xs leading-none text-muted-foreground truncate">
+                        <p className="text-xs leading-none text-neutral-500 font-medium truncate">
                           {user.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="my-1 bg-border/60" />
+                    <DropdownMenuSeparator className="my-1 bg-neutral-200" />
                     {isAdmin && (
                       <>
                         <DropdownMenuItem
                           asChild
-                          className="rounded-xl cursor-pointer py-2 px-2 focus:bg-amber-500/10 text-amber-400 font-medium"
+                          className="rounded-xl cursor-pointer py-2 px-2.5 text-amber-800 font-bold focus:bg-amber-50 focus:text-amber-900 transition-colors"
                         >
-                          <Link to="/admin" className="flex items-center gap-2 text-sm w-full">
-                            <Shield className="size-4 text-amber-400" />
+                          <Link to="/admin" className="flex items-center gap-2.5 text-sm w-full">
+                            <Shield className="size-4 text-amber-600" />
                             <span>Admin Panel</span>
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-1 bg-border/60" />
+                        <DropdownMenuSeparator className="my-1 bg-neutral-200" />
                       </>
                     )}
                     <DropdownMenuItem
                       asChild
-                      className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
+                      className="rounded-xl cursor-pointer py-2 px-2.5 text-neutral-800 font-semibold focus:bg-neutral-100 focus:text-neutral-950 transition-colors"
                     >
-                      <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
-                        <LayoutDashboard className="size-4 text-purple-400" />
+                      <Link to="/dashboard" className="flex items-center gap-2.5 text-sm w-full">
+                        <LayoutDashboard className="size-4 text-purple-600" />
                         <span>Dashboard</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       asChild
-                      className="rounded-xl cursor-pointer py-2 px-2 focus:bg-white/10"
+                      className="rounded-xl cursor-pointer py-2 px-2.5 text-neutral-800 font-semibold focus:bg-neutral-100 focus:text-neutral-950 transition-colors"
                     >
-                      <Link to="/dashboard" className="flex items-center gap-2 text-sm w-full">
-                        <BookOpen className="size-4 text-pink-400" />
+                      <Link to="/dashboard" className="flex items-center gap-2.5 text-sm w-full">
+                        <BookOpen className="size-4 text-pink-600" />
                         <span>My Courses</span>
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="my-1 bg-border/60" />
+                    <DropdownMenuSeparator className="my-1 bg-neutral-200" />
                     <DropdownMenuItem
                       onClick={handleSignOut}
-                      className="rounded-xl cursor-pointer py-2 px-2 text-red-400 focus:text-red-300 focus:bg-red-500/10 flex items-center gap-2 text-sm"
+                      className="rounded-xl cursor-pointer py-2 px-2.5 text-red-600 font-bold focus:text-red-700 focus:bg-red-50 hover:bg-red-50 flex items-center gap-2.5 text-sm transition-colors"
                     >
-                      <LogOut className="size-4" />
+                      <LogOut className="size-4 text-red-600" />
                       <span>Sign out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>

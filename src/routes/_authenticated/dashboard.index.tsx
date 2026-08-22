@@ -178,8 +178,8 @@ function DashboardPage() {
                 onClick={() => setTab(t.id)}
                 className={`px-4 py-2 rounded-full text-sm border inline-flex items-center gap-2 transition ${
                   tab === t.id
-                    ? "gradient-bg text-white border-transparent"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                    ? "gradient-bg text-white border-transparent shadow-md font-semibold"
+                    : "border-neutral-300 bg-white/70 text-neutral-700 font-semibold hover:text-neutral-950 hover:bg-neutral-100"
                 }`}
               >
                 <t.icon className="size-4" />
